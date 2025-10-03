@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Society Maintenance Expense Sheet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .hidden { display: none; }
+        #toast {
+            transform: translateY(150%);
+            transition: transform 0.3s ease-in-out;
+        }
+        #toast.show {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <!-- Main Application Container -->
+    <div id="app" class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        
+        <!-- Loading Indicator -->
+        <div id="loading" class="text-center py-10">
+            <p class="text-slate-500">Loading Application...</p>
+        </div>
+
+        <!-- Authentication Container -->
+        <div id="auth-container" class="hidden max-w-md mx-auto bg-white rounded-2xl shadow-lg p-8 mt-10">
+            <h2 class="text-2xl font-bold text-center text-slate-900 mb-2">Society Login</h2>
+            <p class="text-center text-slate-500 mb-6">Please sign in to manage expenses.</p>
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label for="loginEmail" class="block text-sm font-medium text-slate-700">Email</label>
+                    <input type="email" id="loginEmail" required class="mt-1 block w-full border border-slate-300 rounded-md shadow-sm p-2 focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                <div class="mb-6">
+                    <label for="loginPassword" class="block text-sm font-medium text-slate-700">Password</label>
+                    <input type="password" id="loginPassword" required class="mt-1 block w-full border border-slate-300 rounded-md shadow-sm p-2 focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Login</button>
+            </form>
+            <p id="authError" class="text-red-500 text-sm mt-4 text-center"></p>
+        </div>
+
+        <!-- Logged In Content -->
+        <div id="content-container" class="hidden">
+            <!-- App Header -->
+            <header class="mb-8 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div>
+                    <h1 id="header-title" class="text-3xl md:text-4xl font-bold text-slate-900">Expense Sheets</h1>
+                    <p class="text-slate-500 mt-2" id="welcomeMessage"></p>
+                </div>
+                <button id="logoutButton" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-md shadow-md hover:bg-red-600 w-full sm:w-auto">Logout</button>
+            </header>
+
+            <!-- Dashboard View -->
+            <div id="dashboard-view">
+                <div class="flex flex-col sm:flex-row justify-end gap-3 mb-4">
+                     <button id="open-sheet-recycle-bin-modal" class="bg-slate-500 text-white font-semibold py-2 px-4 rounded-md shadow-md hover:bg-slate-600">
+                        Sheet Recycle Bin
+                    </button>
+                    <button id="open-create-sheet-modal" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow-md hover:bg-blue-700">
+                        + Create New Sheet
+                    </button>
+                </div>
+                <div id="sheets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Sheet cards will be inserted here -->
+                </div>
+                 <p id="no-sheets-message" class="text-center text-slate-500 py-16 hidden">You haven't created any expense sheets yet. Click "Create New Sheet" to get started.</p>
+            </div>
+
+            <!-- Expense Detail View -->
+            <div id="expense-detail-view" class="hidden">
+                <div class="mb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                     <button id="back-to-dashboard" class="text-blue-600 hover:underline font-semibold flex items-center self-start">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                        Back to Dashboard
+                    </button>
+                    <div class="flex gap-3 self-end sm:self-center">
+                        <button id="export-excel-btn" class="text-green-600 hover:text-green-800 font-semibold flex items-center">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v4a1 1 0 102 0V7z" /></svg>
+                           Export Excel
+                        </button>
+                        <button id="open-recycle-bin" class="text-slate-500 hover:text-slate-800 font-semibold flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                            Recycle Bin
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8">
+                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 border-b border-slate-200 pb-8">
+                        <div class="bg-slate-50 rounded-lg p-4">
+                            <label for="startingBalance" class="block text-sm font-medium text-slate-600 mb-1">Starting Balance (₹)</label>
+                            <input type="number" id="startingBalance" value="50000" class="w-full bg-white border border-slate-300 rounded-md shadow-sm p-2 text-2xl font-semibold text-slate-900">
+                        </div>
+                        <div class="bg-red-50 text-red-800 rounded-lg p-4 flex flex-col justify-center">
+                            <h3 class="text-sm font-medium text-red-600">Total Expenses</h3>
+                            <p id="totalExpenses" class="text-2xl font-semibold">₹0.00</p>
+                        </div>
+                        <div class="bg-green-50 text-green-800 rounded-lg p-4 flex flex-col justify-center">
+                            <h3 class="text-sm font-medium text-green-600">Remaining Balance</h3>
+                            <p id="remainingBalance" class="text-2xl font-semibold">₹0.00</p>
+                        </div>
+                    </div>
+                     <div class="mb-8">
+                        <h2 class="text-2xl font-semibold mb-4 text-slate-900">Add New Expense</h2>
+                        <form id="expenseForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                             <div class="lg:col-span-1">
+                                <label for="date" class="block text-sm font-medium text-slate-700">Date</label>
+                                <input type="date" id="date" required class="mt-1 block w-full border border-slate-300 rounded-md shadow-sm p-2">
+                            </div>
+                             <div class="lg:col-span-1">
+                                <label for="amount" class="block text-sm font-medium text-slate-700">Amount (₹)</label>
+                                <input type="number" id="amount" required placeholder="e.g., 1500" class="mt-1 block w-full border border-slate-300 rounded-md shadow-sm p-2">
+                            </div>
+                             <div class="sm:col-span-2 lg:col-span-1">
+                                <label for="paidTo" class="block text-sm font-medium text-slate-700">Paid To</label>
+                                <input type="text" id="paidTo" required placeholder="e.g., ABC Plumbers" class="mt-1 block w-full border border-slate-300 rounded-md shadow-sm p-2">
+                            </div>
+                             <div class="lg:col-span-1">
+                                <label for="paidBy" class="block text-sm font-medium text-slate-700">Paid By</label>
+                                <input type="text" id="paidBy" required placeholder="e.g., Society Treasurer" class="mt-1 block w-full border border-slate-300 rounded-md shadow-sm p-2">
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow-md hover:bg-blue-700 sm:col-span-2 lg:col-span-1">Add Expense</button>
+                        </form>
+                    </div>
+                     <div>
+                        <h2 class="text-2xl font-semibold mb-4 text-slate-900">Expense Log</h2>
+                        <div class="overflow-x-auto rounded-lg border border-slate-200">
+                            <table class="min-w-full divide-y divide-slate-200">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Amount (₹)</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Paid To</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Paid By</th>
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expenseTableBody" class="bg-white divide-y divide-slate-200"></tbody>
+                            </table>
+                        </div>
+                        <p id="emptyMessage" class="text-center text-slate-500 py-8">No expenses logged yet.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <div id="create-sheet-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 class="text-xl font-semibold mb-4">Create New Expense Sheet</h3>
+            <form id="create-sheet-form">
+                <label for="sheetName" class="block text-sm font-medium text-slate-700">Sheet Name</label>
+                <input type="text" id="sheetName" placeholder="e.g., October 2025 Maintenance" required class="mt-1 block w-full border border-slate-300 rounded-md shadow-sm p-2 mb-4">
+                <div class="flex justify-end gap-3">
+                    <button type="button" id="cancel-create-sheet" class="bg-slate-200 text-slate-800 font-semibold py-2 px-4 rounded-md">Cancel</button>
+                    <button type="submit" id="create-sheet-submit" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-md w-28">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="delete-sheet-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 class="text-xl font-semibold mb-2">Move Sheet to Recycle Bin</h3>
+            <p id="delete-sheet-message" class="text-slate-600 mb-4">Are you sure you want to delete this sheet?</p>
+            <div class="flex justify-end gap-3">
+                <button type="button" id="cancel-delete-sheet" class="bg-slate-200 text-slate-800 font-semibold py-2 px-4 rounded-md">Cancel</button>
+                <button type="button" id="confirm-delete-sheet" class="bg-red-600 text-white font-semibold py-2 px-4 rounded-md w-36">Yes, Delete It</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="recycle-bin-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">Expense Recycle Bin</h3>
+                <button id="close-recycle-bin" class="text-2xl font-bold text-slate-500 hover:text-slate-800">&times;</button>
+            </div>
+            <div id="recycle-bin-content" class="max-h-[60vh] overflow-y-auto">
+                 <p id="recycle-bin-empty" class="text-center text-slate-500 py-8">The recycle bin is empty.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="sheet-recycle-bin-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">Sheet Recycle Bin</h3>
+                <button id="close-sheet-recycle-bin" class="text-2xl font-bold text-slate-500 hover:text-slate-800">&times;</button>
+            </div>
+            <div id="sheet-recycle-bin-content" class="max-h-[60vh] overflow-y-auto">
+                 <p id="sheet-recycle-bin-empty" class="text-center text-slate-500 py-8">The sheet recycle bin is empty.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-800 text-white py-3 px-6 rounded-lg shadow-lg flex items-center gap-4 z-50">
+        <span id="toast-message"></span>
+        <button id="toast-undo" class="font-semibold text-blue-400 hover:text-blue-300">Undo</button>
+    </div>
+
+<script type="module">
+    // Firebase Imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, setLogLevel, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Your Firebase project configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyCqzL_cPFd2bDsuV4jhrEv2wxifZsXLVIw",
+        authDomain: "society-expense-tracker.firebaseapp.com",
+        projectId: "society-expense-tracker",
+        storageBucket: "society-expense-tracker.appspot.com",
+        messagingSenderId: "909500443985",
+        appId: "1:909500443985:web:488dead071c81fb73bb770"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    setLogLevel('debug');
+
+    // App State
+    let currentSheetId = null;
+    let currentSheetName = null;
+    let expenses = [];
+    let unsubscribeFromExpenses = null;
+    let toastTimeout = null;
+    let sheetToDelete = null;
+
+    // UI Elements
+    const loadingEl = document.getElementById('loading');
+    const authContainer = document.getElementById('auth-container');
+    const contentContainer = document.getElementById('content-container');
+    const welcomeMessage = document.getElementById('welcomeMessage');
+    const headerTitle = document.getElementById('header-title');
+    const dashboardView = document.getElementById('dashboard-view');
+    const expenseDetailView = document.getElementById('expense-detail-view');
+    const sheetsGrid = document.getElementById('sheets-grid');
+    const noSheetsMessage = document.getElementById('no-sheets-message');
+    const startingBalanceInput = document.getElementById('startingBalance');
+    const totalExpensesEl = document.getElementById('totalExpenses');
+    const remainingBalanceEl = document.getElementById('remainingBalance');
+    const expenseForm = document.getElementById('expenseForm');
+    const expenseTableBody = document.getElementById('expenseTableBody');
+    const emptyMessage = document.getElementById('emptyMessage');
+    const logoutButton = document.getElementById('logoutButton');
+    const backToDashboardBtn = document.getElementById('back-to-dashboard');
+    const createSheetModal = document.getElementById('create-sheet-modal');
+    const recycleBinModal = document.getElementById('recycle-bin-modal');
+    const deleteSheetModal = document.getElementById('delete-sheet-modal');
+    const sheetRecycleBinModal = document.getElementById('sheet-recycle-bin-modal');
+    const toastEl = document.getElementById('toast');
+    const toastMessageEl = document.getElementById('toast-message');
+    const toastUndoBtn = document.getElementById('toast-undo');
+    
+    // --- AUTHENTICATION ---
+    onAuthStateChanged(auth, user => {
+        loadingEl.style.display = 'none';
+        if (user) {
+            authContainer.classList.add('hidden');
+            contentContainer.classList.remove('hidden');
+            welcomeMessage.textContent = `Welcome, ${user.email}`;
+            navigateToDashboard();
+            listenForExpenseSheets();
+        } else {
+            authContainer.classList.remove('hidden');
+            contentContainer.classList.add('hidden');
+            if (unsubscribeFromExpenses) unsubscribeFromExpenses();
+        }
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+        } catch (error) {
+            document.getElementById('authError').textContent = error.message;
+        }
+    });
+
+    logoutButton.addEventListener('click', () => signOut(auth));
+    
+    // --- NAVIGATION ---
+    function navigateToDashboard() {
+        currentSheetId = null;
+        currentSheetName = null;
+        if (unsubscribeFromExpenses) unsubscribeFromExpenses();
+        dashboardView.classList.remove('hidden');
+        expenseDetailView.classList.add('hidden');
+        headerTitle.textContent = "Expense Sheets";
+    }
+
+    function navigateToDetailView(sheetId, sheetName) {
+        currentSheetId = sheetId;
+        currentSheetName = sheetName;
+        dashboardView.classList.add('hidden');
+        expenseDetailView.classList.remove('hidden');
+        headerTitle.textContent = `Sheet: ${sheetName}`;
+        listenForExpenses();
+        document.getElementById('date').valueAsDate = new Date();
+    }
+
+    backToDashboardBtn.addEventListener('click', navigateToDashboard);
+
+    // --- DASHBOARD LOGIC ---
+    function listenForExpenseSheets() {
+        const q = query(collection(db, 'expense_sheets'), where('status', '==', 'active'));
+        onSnapshot(q, snapshot => {
+            const sheets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderDashboard(sheets);
+        });
+    }
+
+    function renderDashboard(sheets) {
+        sheetsGrid.innerHTML = '';
+        noSheetsMessage.classList.toggle('hidden', sheets.length > 0);
+        sheets.forEach(sheet => {
+            const card = document.createElement('div');
+            card.className = "bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow flex flex-col justify-between";
+            card.innerHTML = `
+                <div class="cursor-pointer flex-grow" data-sheet-id="${sheet.id}" data-sheet-name="${sheet.name}">
+                    <h3 class="text-xl font-semibold text-slate-800">${sheet.name}</h3>
+                </div>
+                <div class="text-right mt-4">
+                    <button data-id="${sheet.id}" data-name="${sheet.name}" class="text-sm text-red-500 hover:text-red-700 font-semibold delete-sheet-btn">Delete</button>
+                </div>`;
+            sheetsGrid.appendChild(card);
+        });
+    }
+    
+    sheetsGrid.addEventListener('click', (e) => {
+        const deleteBtn = e.target.closest('.delete-sheet-btn');
+        const card = e.target.closest('[data-sheet-id]');
+        if (deleteBtn) {
+            handleDeleteSheet(deleteBtn.dataset.id, deleteBtn.dataset.name);
+        } else if (card) {
+             navigateToDetailView(card.dataset.sheetId, card.dataset.sheetName);
+        }
+    });
+
+    document.getElementById('open-create-sheet-modal').addEventListener('click', () => createSheetModal.classList.remove('hidden'));
+    document.getElementById('cancel-create-sheet').addEventListener('click', () => createSheetModal.classList.add('hidden'));
+    document.getElementById('create-sheet-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const sheetName = document.getElementById('sheetName').value;
+        const submitBtn = document.getElementById('create-sheet-submit');
+        if (sheetName) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating...';
+            try {
+                await addDoc(collection(db, 'expense_sheets'), { name: sheetName, createdAt: new Date(), status: 'active' });
+                createSheetModal.classList.add('hidden');
+                e.target.reset();
+            } catch (error) {
+                console.error("Error creating sheet:", error);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create';
+            }
+        }
+    });
+
+    // --- DELETE/RESTORE SHEET LOGIC ---
+    function handleDeleteSheet(sheetId, sheetName) {
+        sheetToDelete = { id: sheetId, name: sheetName };
+        document.getElementById('delete-sheet-message').textContent = `Are you sure you want to move "${sheetName}" to the recycle bin?`;
+        deleteSheetModal.classList.remove('hidden');
+    }
+
+    document.getElementById('cancel-delete-sheet').addEventListener('click', () => {
+        deleteSheetModal.classList.add('hidden');
+        sheetToDelete = null;
+    });
+
+    document.getElementById('confirm-delete-sheet').addEventListener('click', async () => {
+        if (!sheetToDelete) return;
+        await updateDoc(doc(db, 'expense_sheets', sheetToDelete.id), { status: 'deleted' });
+        deleteSheetModal.classList.add('hidden');
+        showToast(`Sheet "${sheetToDelete.name}" deleted.`, () => restoreSheet(sheetToDelete.id));
+        sheetToDelete = null;
+    });
+    
+    async function restoreSheet(sheetId) {
+        await updateDoc(doc(db, 'expense_sheets', sheetId), { status: 'active' });
+    }
+
+    async function permanentlyDeleteSheet(sheetId) {
+        const confirmBtn = document.querySelector(`#sheet-recycle-bin-content [data-id="${sheetId}"].perm-delete-sheet-btn`);
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Deleting...';
+        try {
+            const q = query(collection(db, 'expenses'), where('sheetId', '==', sheetId));
+            const expenseSnapshot = await getDocs(q);
+            const batch = writeBatch(db);
+            expenseSnapshot.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            await deleteDoc(doc(db, 'expense_sheets', sheetId));
+        } catch (error) {
+            console.error("Error permanently deleting sheet:", error);
+        } finally {
+             openSheetRecycleBin();
+        }
+    }
+
+    // --- EXPENSE DETAIL LOGIC ---
+    function listenForExpenses() {
+        if (unsubscribeFromExpenses) unsubscribeFromExpenses();
+        const q = query(collection(db, 'expenses'), where('sheetId', '==', currentSheetId), where('status', '==', 'active'));
+        unsubscribeFromExpenses = onSnapshot(q, snapshot => {
+            expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderTable();
+            updateSummary();
+        });
+    }
+
+    expenseForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        if (!currentSheetId) return;
+        const newExpense = {
+            date: document.getElementById('date').value,
+            amount: parseFloat(document.getElementById('amount').value),
+            paidTo: document.getElementById('paidTo').value,
+            paidBy: document.getElementById('paidBy').value,
+            sheetId: currentSheetId,
+            status: 'active'
+        };
+        await addDoc(collection(db, 'expenses'), newExpense);
+        expenseForm.reset();
+        document.getElementById('date').valueAsDate = new Date();
+    });
+    
+    function renderTable() {
+        expenseTableBody.innerHTML = '';
+        emptyMessage.style.display = expenses.length === 0 ? 'block' : 'none';
+        const sortedExpenses = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+        sortedExpenses.forEach(expense => {
+            const row = document.createElement('tr');
+            row.className = "hover:bg-slate-50";
+            row.innerHTML = `
+                <td class="px-6 py-4">${new Date(expense.date).toLocaleDateString('en-GB')}</td>
+                <td class="px-6 py-4 font-medium">${formatCurrency(expense.amount)}</td>
+                <td class="px-6 py-4">${expense.paidTo}</td>
+                <td class="px-6 py-4">${expense.paidBy}</td>
+                <td class="px-6 py-4 text-center">
+                    <button data-id="${expense.id}" class="text-red-600 hover:text-red-900 delete-btn">Delete</button>
+                </td>`;
+            expenseTableBody.appendChild(row);
+        });
+    }
+
+    function updateSummary() {
+        const startingBalance = parseFloat(startingBalanceInput.value) || 0;
+        const totalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+        const remaining = startingBalance - totalExpenses;
+        totalExpensesEl.textContent = formatCurrency(totalExpenses);
+        remainingBalanceEl.textContent = formatCurrency(remaining);
+        remainingBalanceEl.classList.toggle('text-red-600', remaining < 0);
+        remainingBalanceEl.classList.toggle('text-green-800', remaining >= 0);
+    }
+    
+    startingBalanceInput.addEventListener('input', updateSummary);
+    expenseTableBody.addEventListener('click', e => {
+        if (e.target.classList.contains('delete-btn')) {
+            moveToRecycleBin(e.target.dataset.id);
+        }
+    });
+
+    // --- EXPENSE RECYCLE BIN ---
+    async function moveToRecycleBin(expenseId) {
+        await updateDoc(doc(db, 'expenses', expenseId), { status: 'deleted' });
+        showToast("Expense deleted.", () => restoreExpense(expenseId));
+    }
+
+    async function restoreExpense(expenseId) {
+        await updateDoc(doc(db, 'expenses', expenseId), { status: 'active' });
+    }
+
+    async function permanentlyDeleteExpense(expenseId) {
+         await deleteDoc(doc(db, 'expenses', expenseId));
+         await openRecycleBin();
+    }
+    
+    document.getElementById('open-recycle-bin').addEventListener('click', openRecycleBin);
+    document.getElementById('close-recycle-bin').addEventListener('click', () => recycleBinModal.classList.add('hidden'));
+
+    async function openRecycleBin() {
+        if (!currentSheetId) return;
+        recycleBinModal.classList.remove('hidden');
+        const binContent = document.getElementById('recycle-bin-content');
+        binContent.innerHTML = '<p class="text-center text-slate-500 py-8">Loading...</p>';
+        const q = query(collection(db, 'expenses'), where('sheetId', '==', currentSheetId), where('status', '==', 'deleted'));
+        const snapshot = await getDocs(q);
+        const deletedItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const binEmptyMsg = document.getElementById('recycle-bin-empty');
+        binEmptyMsg.classList.toggle('hidden', deletedItems.length > 0);
+        binContent.innerHTML = '';
+        if (deletedItems.length > 0) {
+             deletedItems.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.className = "flex justify-between items-center p-3 border-b";
+                itemEl.innerHTML = `<div><p>${item.paidTo} - <strong>${formatCurrency(item.amount)}</strong></p><p class="text-xs text-slate-500">Deleted on: ${new Date(item.date).toLocaleDateString('en-GB')}</p></div><div><button data-id="${item.id}" class="restore-btn text-blue-600 font-semibold mr-4">Restore</button><button data-id="${item.id}" class="perm-delete-btn text-red-600 font-semibold">Delete Forever</button></div>`;
+                binContent.appendChild(itemEl);
+            });
+        } else {
+             binContent.appendChild(binEmptyMsg);
+        }
+    }
+
+    document.getElementById('recycle-bin-content').addEventListener('click', e => {
+        const id = e.target.dataset.id;
+        if (!id) return;
+        if (e.target.classList.contains('restore-btn')) restoreExpense(id);
+        if (e.target.classList.contains('perm-delete-btn')) permanentlyDeleteExpense(id);
+    });
+    
+    // --- SHEET RECYCLE BIN ---
+    document.getElementById('open-sheet-recycle-bin-modal').addEventListener('click', openSheetRecycleBin);
+    document.getElementById('close-sheet-recycle-bin').addEventListener('click', () => sheetRecycleBinModal.classList.add('hidden'));
+
+    async function openSheetRecycleBin() {
+        sheetRecycleBinModal.classList.remove('hidden');
+        const binContent = document.getElementById('sheet-recycle-bin-content');
+        const binEmptyMsg = document.getElementById('sheet-recycle-bin-empty');
+        binContent.innerHTML = '<p class="text-center text-slate-500 py-8">Loading...</p>';
+        const q = query(collection(db, 'expense_sheets'), where('status', '==', 'deleted'));
+        const snapshot = await getDocs(q);
+        const deletedSheets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        binEmptyMsg.classList.toggle('hidden', deletedSheets.length > 0);
+        binContent.innerHTML = '';
+        if(deletedSheets.length > 0) {
+            deletedSheets.forEach(sheet => {
+                const itemEl = document.createElement('div');
+                itemEl.className = "flex justify-between items-center p-3 border-b";
+                itemEl.innerHTML = `<div><p><strong>${sheet.name}</strong></p></div><div><button data-id="${sheet.id}" class="restore-sheet-btn text-blue-600 font-semibold mr-4">Restore</button><button data-id="${sheet.id}" class="perm-delete-sheet-btn text-red-600 font-semibold">Delete Forever</button></div>`;
+                binContent.appendChild(itemEl);
+            });
+        } else {
+            binContent.appendChild(binEmptyMsg);
+        }
+    }
+
+    document.getElementById('sheet-recycle-bin-content').addEventListener('click', e => {
+        const id = e.target.dataset.id;
+        if (!id) return;
+        if (e.target.classList.contains('restore-sheet-btn')) restoreSheet(id);
+        if (e.target.classList.contains('perm-delete-sheet-btn')) permanentlyDeleteSheet(id);
+    });
+
+    // --- EXPORT TO EXCEL ---
+    document.getElementById('export-excel-btn').addEventListener('click', () => {
+        if (expenses.length === 0) {
+            alert("No expenses to export.");
+            return;
+        }
+        const worksheetData = expenses.map(exp => ({
+            Date: new Date(exp.date).toLocaleDateString('en-GB'),
+            Amount: exp.amount,
+            'Paid To': exp.paidTo,
+            'Paid By': exp.paidBy
+        }));
+        const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Expenses');
+        const filename = `${currentSheetName.replace(/\s+/g, '-')}.xlsx`;
+        XLSX.writeFile(workbook, filename);
+    });
+
+    // --- TOAST NOTIFICATION ---
+    function showToast(message, undoCallback) {
+        toastMessageEl.textContent = message;
+        toastUndoBtn.style.display = undoCallback ? 'block' : 'none';
+        toastEl.classList.add('show');
+        if (undoCallback) {
+            toastUndoBtn.onclick = () => {
+                undoCallback();
+                hideToast();
+            };
+        }
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(hideToast, 5000);
+    }
+    
+    function hideToast() {
+        toastEl.classList.remove('show');
+        clearTimeout(toastTimeout);
+    }
+
+    // --- UTILITIES ---
+    function formatCurrency(amount) {
+        return `₹${Number(amount).toFixed(2)}`;
+    }
+</script>
+</body>
+</html>
+
