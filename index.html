@@ -55,11 +55,14 @@
                  <div class="mb-6"><button id="back-to-dashboard-from-residents" class="text-blue-600 font-semibold flex items-center">&larr; Back to Dashboard</button></div>
                  <div class="bg-white p-6 rounded-lg shadow-md">
                      <h2 class="text-2xl font-semibold mb-4">Manage Residents</h2>
-                     <form id="resident-form" class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end mb-6">
-                         <div><label for="r-flat" class="text-sm">Flat No.</label><input type="text" id="r-flat" placeholder="A-101" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
-                         <div><label for="r-name" class="text-sm">Owner Name</label><input type="text" id="r-name" placeholder="Mr. Sharma" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
-                         <div><label for="r-amount" class="text-sm">Maint. Amount</label><input type="number" id="r-amount" placeholder="2500" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
-                         <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md">Add Resident</button>
+                     <form id="resident-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end mb-6">
+                         <div class="md:col-span-1"><label for="r-flat" class="text-sm">Flat No.</label><input type="text" id="r-flat" placeholder="A-101" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
+                         <div class="md:col-span-2"><label for="r-name" class="text-sm">Owner Name</label><input type="text" id="r-name" placeholder="Mr. Sharma" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
+                         <div class="md:col-span-1"><label for="r-amount" class="text-sm">Maint. Amount</label><input type="number" id="r-amount" placeholder="2500" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
+                         <div class="flex gap-2 md:col-span-1">
+                             <button type="submit" id="resident-submit-btn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md">Add</button>
+                             <button type="button" id="resident-cancel-btn" class="w-full bg-slate-200 py-2 px-4 rounded-md hidden">Cancel</button>
+                         </div>
                      </form>
                      <div class="overflow-x-auto"><table class="w-full">
                          <thead class="bg-slate-50"><tr>
@@ -138,7 +141,11 @@
         </div>
     </div>
     
-    <!-- Modals and Toast would go here -->
+    <!-- Modals and Toast -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-800 text-white py-3 px-6 rounded-lg shadow-lg flex items-center gap-4 z-50">
+        <span id="toast-message"></span>
+    </div>
+    <!-- Other modals would go here, simplified for brevity -->
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -165,6 +172,8 @@
         currentSheetId: null,
         currentSheetName: null,
         activeStatusFilter: 'all',
+        editingResidentId: null,
+        toastTimeout: null,
     };
 
     const UI = {
@@ -191,9 +200,21 @@
         detailTabs: document.getElementById('detail-tabs'),
         tabContent: document.getElementById('tab-content'),
         statusFilters: document.getElementById('status-filters'),
+        residentSubmitBtn: document.getElementById('resident-submit-btn'),
+        residentCancelBtn: document.getElementById('resident-cancel-btn'),
+        toast: document.getElementById('toast'),
+        toastMessage: document.getElementById('toast-message'),
     };
 
     const formatCurrency = (amount) => `₹${Number(amount || 0).toFixed(2)}`;
+    const showToast = (message, isError = false) => {
+        UI.toastMessage.textContent = message;
+        UI.toast.classList.toggle('bg-red-600', isError);
+        UI.toast.classList.toggle('bg-slate-800', !isError);
+        UI.toast.classList.add('show');
+        clearTimeout(state.toastTimeout);
+        state.toastTimeout = setTimeout(() => UI.toast.classList.remove('show'), 3000);
+    };
     
     // --- AUTH ---
     onAuthStateChanged(auth, user => {
@@ -210,37 +231,18 @@
     document.getElementById('loginForm').addEventListener('submit', async e => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value); } catch (err) { authError.textContent = err.message; } });
     document.getElementById('logoutButton').addEventListener('click', () => signOut(auth));
 
-    // --- NAVIGATION ---
-    const navigateToDashboard = () => {
-        UI.dashboard.classList.remove('hidden');
-        UI.detail.classList.add('hidden');
-        UI.residentsView.classList.add('hidden');
-        UI.headerTitle.textContent = "Finance Sheets";
-    };
-    const navigateToDetail = (sheetId, sheetName) => {
-        state.currentSheetId = sheetId;
-        state.currentSheetName = sheetName;
-        UI.dashboard.classList.add('hidden');
-        UI.detail.classList.remove('hidden');
-        UI.residentsView.classList.add('hidden');
-        UI.headerTitle.textContent = `Sheet: ${sheetName}`;
-        listenForSheetData();
-        switchTab('status'); // Default to status tab
-    };
-    const navigateToResidents = () => {
-        UI.dashboard.classList.add('hidden');
-        UI.detail.classList.add('hidden');
-        UI.residentsView.classList.remove('hidden');
-        UI.headerTitle.textContent = "Manage Residents";
-    };
+    // --- NAVIGATION & VIEWS ---
+    const navigateToDashboard = () => { UI.dashboard.classList.remove('hidden'); UI.detail.classList.add('hidden'); UI.residentsView.classList.add('hidden'); UI.headerTitle.textContent = "Finance Sheets"; };
+    const navigateToDetail = (sheetId, sheetName) => { state.currentSheetId = sheetId; state.currentSheetName = sheetName; UI.dashboard.classList.add('hidden'); UI.detail.classList.remove('hidden'); UI.residentsView.classList.add('hidden'); UI.headerTitle.textContent = `Sheet: ${sheetName}`; listenForSheetData(); switchTab('status'); };
+    const navigateToResidents = () => { UI.dashboard.classList.add('hidden'); UI.detail.classList.add('hidden'); UI.residentsView.classList.remove('hidden'); UI.headerTitle.textContent = "Manage Residents"; cancelResidentEdit(); };
     document.getElementById('back-to-dashboard-from-detail').addEventListener('click', navigateToDashboard);
     document.getElementById('back-to-dashboard-from-residents').addEventListener('click', navigateToDashboard);
     document.getElementById('manage-residents-btn').addEventListener('click', navigateToResidents);
 
     // --- DATA LISTENERS ---
     let unsubExpenses, unsubCollections, unsubResidents;
-    const listenForSheets = () => onSnapshot(query(collection(db, 'expense_sheets'), where('status', '==', 'active')), s => renderDashboard(s.docs.map(d => ({ id: d.id, ...d.data() }))));
-    const listenForResidents = () => unsubResidents = onSnapshot(collection(db, 'residents'), s => { state.residents = s.docs.map(d => ({ id: d.id, ...d.data() })); renderResidentsTable(); });
+    const listenForSheets = () => onSnapshot(query(collection(db, 'expense_sheets')), s => renderDashboard(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+    const listenForResidents = () => unsubResidents = onSnapshot(collection(db, 'residents'), s => { state.residents = s.docs.map(d => ({ id: d.id, ...d.data() })); renderResidentsTable(); populateFlatDropdown(); });
     const listenForSheetData = () => {
         if (unsubExpenses) unsubExpenses();
         if (unsubCollections) unsubCollections();
@@ -252,151 +254,95 @@
 
     // --- RENDER FUNCTIONS ---
     const renderAllSheetData = () => { renderSummary(); renderPaymentStatus(); };
-    const renderDashboard = (sheets) => {
-        UI.sheetsGrid.innerHTML = '';
-        UI.noSheets.classList.toggle('hidden', sheets.length > 0);
-        sheets.forEach(sheet => {
-            const card = document.createElement('div');
-            card.className = "bg-white p-6 rounded-lg shadow hover:shadow-lg cursor-pointer";
-            card.innerHTML = `<h3 class="text-xl font-semibold">${sheet.name}</h3>`;
-            card.addEventListener('click', () => navigateToDetail(sheet.id, sheet.name));
-            UI.sheetsGrid.appendChild(card);
-        });
-    };
+    const renderDashboard = (sheets) => { UI.sheetsGrid.innerHTML = ''; UI.noSheets.classList.toggle('hidden', sheets.length > 0); sheets.forEach(sheet => { const card = document.createElement('div'); card.className = "bg-white p-6 rounded-lg shadow hover:shadow-lg cursor-pointer"; card.innerHTML = `<h3 class="text-xl font-semibold">${sheet.name}</h3>`; card.addEventListener('click', () => navigateToDetail(sheet.id, sheet.name)); UI.sheetsGrid.appendChild(card); }); };
     const renderResidentsTable = () => {
         UI.residentsTable.innerHTML = '';
         state.residents.sort((a, b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => {
             const row = UI.residentsTable.insertRow();
-            row.innerHTML = `<td class="p-3">${res.flatNo}</td><td class="p-3">${res.ownerName}</td><td class="p-3">${formatCurrency(res.maintAmount)}</td><td class="p-3 text-center"><button data-id="${res.id}" class="text-red-500 text-sm delete-resident-btn">Delete</button></td>`;
+            row.innerHTML = `<td class="p-3">${res.flatNo}</td><td class="p-3">${res.ownerName}</td><td class="p-3">${formatCurrency(res.maintAmount)}</td><td class="p-3 text-center space-x-4"><button data-id="${res.id}" class="text-blue-500 text-sm edit-resident-btn">Edit</button><button data-id="${res.id}" class="text-red-500 text-sm delete-resident-btn">Delete</button></td>`;
         });
-        populateFlatDropdown();
     };
-    const renderSummary = () => {
-        const totalCollected = state.collections.reduce((sum, item) => sum + Number(item.amount), 0);
-        const totalExpenses = state.expenses.reduce((sum, item) => sum + Number(item.amount), 0);
-        const balance = totalCollected - totalExpenses;
-        UI.totalCollected.textContent = formatCurrency(totalCollected);
-        UI.totalExpenses.textContent = formatCurrency(totalExpenses);
-        UI.remainingBalance.textContent = formatCurrency(balance);
-        const isNegative = balance < 0;
-        UI.balanceCard.className = `p-6 rounded-lg ${isNegative ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`;
-        UI.balanceLabel.className = `font-medium ${isNegative ? 'text-red-600' : 'text-green-600'}`;
-        UI.balanceLabel.textContent = isNegative ? 'Deficit' : 'Remaining Balance';
-    };
+    const renderSummary = () => { const totalCollected = state.collections.reduce((s, i) => s + i.amount, 0); const totalExpenses = state.expenses.reduce((s, i) => s + i.amount, 0); const balance = totalCollected - totalExpenses; UI.totalCollected.textContent = formatCurrency(totalCollected); UI.totalExpenses.textContent = formatCurrency(totalExpenses); UI.remainingBalance.textContent = formatCurrency(balance); const isNeg = balance < 0; UI.balanceCard.className = `p-6 rounded-lg ${isNeg ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`; UI.balanceLabel.className = `font-medium ${isNeg ? 'text-red-600' : 'text-green-600'}`; UI.balanceLabel.textContent = isNeg ? 'Deficit' : 'Remaining Balance'; };
     const renderPaymentStatus = () => {
         UI.paymentStatusTable.innerHTML = '';
         const paidFlats = new Set(state.collections.map(c => c.flatNo));
         let residentsToDisplay = state.residents;
-
-        if (state.activeStatusFilter === 'pending') {
-            residentsToDisplay = state.residents.filter(r => !paidFlats.has(r.flatNo));
-        } else if (state.activeStatusFilter === 'paid') {
-            residentsToDisplay = state.residents.filter(r => paidFlats.has(r.flatNo));
-        }
-        
-        residentsToDisplay.sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => {
-            const isPaid = paidFlats.has(res.flatNo);
-            const row = UI.paymentStatusTable.insertRow();
-            const statusClass = isPaid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
-            row.innerHTML = `<td class="p-3">${res.flatNo}</td><td class="p-3">${res.ownerName}</td><td class="p-3"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${isPaid ? 'Paid' : 'Pending'}</span></td>`;
-        });
+        if (state.activeStatusFilter === 'pending') residentsToDisplay = state.residents.filter(r => !paidFlats.has(r.flatNo));
+        if (state.activeStatusFilter === 'paid') residentsToDisplay = state.residents.filter(r => paidFlats.has(r.flatNo));
+        residentsToDisplay.sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => { const isPaid = paidFlats.has(res.flatNo); const row = UI.paymentStatusTable.insertRow(); const statusClass = isPaid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'; row.innerHTML = `<td class="p-3">${res.flatNo}</td><td class="p-3">${res.ownerName}</td><td class="p-3"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${isPaid ? 'Paid' : 'Pending'}</span></td>`; });
     };
 
-    // --- FORM & UI LOGIC ---
+    // --- RESIDENT MANAGEMENT ---
     UI.residentForm.addEventListener('submit', async e => {
         e.preventDefault();
-        const flatNo = document.getElementById('r-flat').value;
-        const ownerName = document.getElementById('r-name').value;
-        const maintAmount = parseFloat(document.getElementById('r-amount').value);
-        if (flatNo && ownerName && maintAmount) {
-            await addDoc(collection(db, 'residents'), { flatNo, ownerName, maintAmount });
-            UI.residentForm.reset();
-        }
-    });
-    UI.residentsTable.addEventListener('click', async e => { if (e.target.classList.contains('delete-resident-btn')) { await deleteDoc(doc(db, 'residents', e.target.dataset.id)); } });
-    
-    const populateFlatDropdown = () => {
-        const select = document.getElementById('m-flat');
-        select.innerHTML = '<option value="">Select a Flat</option>';
-        state.residents.sort((a, b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => {
-            const option = document.createElement('option');
-            option.value = res.flatNo;
-            option.textContent = res.flatNo;
-            select.appendChild(option);
-        });
-    };
-
-    document.getElementById('m-flat').addEventListener('change', e => {
-        const selectedFlat = state.residents.find(r => r.flatNo === e.target.value);
-        if (selectedFlat) {
-            document.getElementById('m-name').value = selectedFlat.ownerName;
-            document.getElementById('m-amount').value = selectedFlat.maintAmount;
+        const btn = UI.residentSubmitBtn;
+        btn.disabled = true;
+        const data = { flatNo: document.getElementById('r-flat').value, ownerName: document.getElementById('r-name').value, maintAmount: parseFloat(document.getElementById('r-amount').value) };
+        if (state.editingResidentId) {
+            btn.textContent = 'Updating...';
+            await updateDoc(doc(db, 'residents', state.editingResidentId), data);
+            showToast('Resident updated successfully.');
         } else {
-            document.getElementById('m-name').value = '';
-            document.getElementById('m-amount').value = '';
+            btn.textContent = 'Adding...';
+            await addDoc(collection(db, 'residents'), data);
+            showToast('Resident added successfully.');
+        }
+        cancelResidentEdit();
+    });
+    const editResident = (id) => {
+        state.editingResidentId = id;
+        const resident = state.residents.find(r => r.id === id);
+        document.getElementById('r-flat').value = resident.flatNo;
+        document.getElementById('r-name').value = resident.ownerName;
+        document.getElementById('r-amount').value = resident.maintAmount;
+        UI.residentSubmitBtn.textContent = 'Update';
+        UI.residentSubmitBtn.classList.replace('bg-blue-600', 'bg-green-600');
+        UI.residentCancelBtn.classList.remove('hidden');
+    };
+    const cancelResidentEdit = () => {
+        state.editingResidentId = null;
+        UI.residentForm.reset();
+        UI.residentSubmitBtn.textContent = 'Add';
+        UI.residentSubmitBtn.disabled = false;
+        UI.residentSubmitBtn.classList.replace('bg-green-600', 'bg-blue-600');
+        UI.residentCancelBtn.classList.add('hidden');
+    };
+    UI.residentCancelBtn.addEventListener('click', cancelResidentEdit);
+    UI.residentsTable.addEventListener('click', async e => {
+        const id = e.target.dataset.id;
+        if (e.target.matches('.edit-resident-btn')) editResident(id);
+        if (e.target.matches('.delete-resident-btn')) {
+            if (confirm('Are you sure you want to delete this resident?')) {
+                await deleteDoc(doc(db, 'residents', id));
+                showToast('Resident deleted.', true);
+            }
         }
     });
+
+    // --- SHEET DETAIL LOGIC ---
+    const populateFlatDropdown = () => { const select = document.getElementById('m-flat'); select.innerHTML = '<option value="">Select a Flat</option>'; state.residents.sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => { const option = document.createElement('option'); option.value = res.flatNo; option.textContent = `${res.flatNo} - ${res.ownerName}`; select.appendChild(option); }); };
+    document.getElementById('m-flat').addEventListener('change', e => { const res = state.residents.find(r => r.flatNo === e.target.value); if (res) { document.getElementById('m-name').value = res.ownerName; document.getElementById('m-amount').value = res.maintAmount; } else { document.getElementById('m-name').value = ''; document.getElementById('m-amount').value = ''; } });
     
     UI.maintenanceForm.addEventListener('submit', async e => {
         e.preventDefault();
-        const data = {
-            date: document.getElementById('m-date').value,
-            flatNo: document.getElementById('m-flat').value,
-            ownerName: document.getElementById('m-name').value,
-            amount: parseFloat(document.getElementById('m-amount').value),
-            mode: document.getElementById('m-mode').value,
-            sheetId: state.currentSheetId,
-        };
-        if (data.flatNo && data.amount) {
-            await addDoc(collection(db, 'maintenance'), data);
-            UI.maintenanceForm.reset();
-            document.getElementById('m-name').value = '';
-            document.getElementById('m-amount').value = '';
+        const flatNo = document.getElementById('m-flat').value;
+        const alreadyPaid = state.collections.some(c => c.flatNo === flatNo);
+        if (alreadyPaid) {
+            showToast(`Payment for ${flatNo} has already been logged.`, true);
+            return;
         }
+        const data = { date: document.getElementById('m-date').value, flatNo, ownerName: document.getElementById('m-name').value, amount: parseFloat(document.getElementById('m-amount').value), mode: document.getElementById('m-mode').value, sheetId: state.currentSheetId };
+        if (data.flatNo && data.amount) { await addDoc(collection(db, 'maintenance'), data); UI.maintenanceForm.reset(); document.getElementById('m-name').value = ''; document.getElementById('m-amount').value = ''; showToast('Collection added.'); }
     });
-
-    UI.expenseForm.addEventListener('submit', async e => {
-        e.preventDefault();
-        const data = {
-            date: document.getElementById('e-date').value,
-            amount: parseFloat(document.getElementById('e-amount').value),
-            description: document.getElementById('e-desc').value,
-            sheetId: state.currentSheetId,
-        };
-        if (data.description && data.amount) {
-            await addDoc(collection(db, 'expenses'), data);
-            UI.expenseForm.reset();
-        }
-    });
+    UI.expenseForm.addEventListener('submit', async e => { e.preventDefault(); const data = { date: document.getElementById('e-date').value, amount: parseFloat(document.getElementById('e-amount').value), description: document.getElementById('e-desc').value, sheetId: state.currentSheetId, }; if (data.description && data.amount) { await addDoc(collection(db, 'expenses'), data); UI.expenseForm.reset(); showToast('Expense added.'); } });
     
-    // Tab switching
     UI.detailTabs.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') switchTab(e.target.dataset.tab); });
-    const switchTab = (activeTab) => {
-        UI.detailTabs.querySelectorAll('button').forEach(btn => {
-            btn.classList.toggle('tab-active', btn.dataset.tab === activeTab);
-            btn.classList.toggle('text-gray-500', btn.dataset.tab !== activeTab);
-        });
-        UI.tabContent.querySelectorAll('[id$="-tab"]').forEach(content => {
-            content.classList.toggle('hidden', !content.id.startsWith(activeTab));
-        });
-    };
-
-    // Status filter
-    UI.statusFilters.addEventListener('click', e => {
-        if (e.target.tagName === 'BUTTON') {
-            state.activeStatusFilter = e.target.dataset.filter;
-            UI.statusFilters.querySelectorAll('button').forEach(btn => {
-                btn.classList.toggle('bg-blue-500', btn.dataset.filter === state.activeStatusFilter);
-                btn.classList.toggle('text-white', btn.dataset.filter === state.activeStatusFilter);
-                btn.classList.toggle('bg-gray-200', btn.dataset.filter !== state.activeStatusFilter);
-            });
-            renderPaymentStatus();
-        }
-    });
-
-    // Dummy placeholders for modals and other complex features to be added
-    document.getElementById('open-create-sheet-modal').addEventListener('click', () => alert('Create Sheet Modal Placeholder'));
-    document.getElementById('open-sheet-recycle-bin-modal').addEventListener('click', () => alert('Sheet Recycle Bin Placeholder'));
+    const switchTab = (activeTab) => { UI.detailTabs.querySelectorAll('button').forEach(btn => { btn.classList.toggle('tab-active', btn.dataset.tab === activeTab); btn.classList.toggle('text-gray-500', btn.dataset.tab !== activeTab); }); UI.tabContent.querySelectorAll('[id$="-tab"]').forEach(content => content.classList.toggle('hidden', !content.id.startsWith(activeTab))); };
+    UI.statusFilters.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { state.activeStatusFilter = e.target.dataset.filter; UI.statusFilters.querySelectorAll('button').forEach(btn => { btn.classList.toggle('bg-blue-500', btn.dataset.filter === state.activeStatusFilter); btn.classList.toggle('text-white', btn.dataset.filter === state.activeStatusFilter); btn.classList.toggle('bg-gray-200', btn.dataset.filter !== state.activeStatusFilter); }); renderPaymentStatus(); } });
+    
+    // --- DUMMY MODALS/SHEETS ---
+    document.getElementById('open-create-sheet-modal').addEventListener('click', () => { const name = prompt("Enter new sheet name:"); if (name) addDoc(collection(db, 'expense_sheets'), { name, createdAt: new Date(), status: 'active' }); });
+    document.getElementById('open-sheet-recycle-bin-modal').addEventListener('click', () => alert('Recycle bin not implemented in this version.'));
 
 </script>
 </body>
