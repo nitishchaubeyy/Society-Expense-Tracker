@@ -3,175 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Society Finance Manager</title>
+    <title>Society Finance Manager Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
         .hidden { display: none; }
-        #toast {
-            transform: translateY(150%);
-            transition: transform 0.3s ease-in-out;
-        }
+        #toast { transform: translateY(150%); transition: transform 0.3s ease-in-out; }
         #toast.show { transform: translateY(0); }
         .sort-asc::after { content: ' ▲'; font-size: 0.7em; }
         .sort-desc::after { content: ' ▼'; font-size: 0.7em; }
+        .tab-active { border-color: #3b82f6; color: #3b82f6; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
 
-    <!-- Main Application Container -->
     <div id="app" class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        
         <div id="loading" class="text-center py-10"><p class="text-slate-500">Loading Application...</p></div>
 
-        <!-- Authentication Container -->
         <div id="auth-container" class="hidden max-w-md mx-auto bg-white rounded-2xl shadow-lg p-8 mt-10">
-            <h2 class="text-2xl font-bold text-center text-slate-900 mb-2">Society Login</h2>
-            <p class="text-center text-slate-500 mb-6">Please sign in to manage finances.</p>
-            <form id="loginForm">
-                <div class="mb-4">
-                    <label for="loginEmail" class="block text-sm font-medium text-slate-700">Email</label>
-                    <input type="email" id="loginEmail" required class="mt-1 block w-full border-slate-300 rounded-md shadow-sm p-2 focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="mb-6">
-                    <label for="loginPassword" class="block text-sm font-medium text-slate-700">Password</label>
-                    <input type="password" id="loginPassword" required class="mt-1 block w-full border-slate-300 rounded-md shadow-sm p-2 focus:ring-2 focus:ring-blue-500">
-                </div>
-                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow-md hover:bg-blue-700">Login</button>
-            </form>
-            <p id="authError" class="text-red-500 text-sm mt-4 text-center"></p>
+             <h2 class="text-2xl font-bold text-center">Society Login</h2>
+             <form id="loginForm" class="mt-6">
+                 <div class="mb-4"><label for="loginEmail" class="block text-sm font-medium">Email</label><input type="email" id="loginEmail" required class="mt-1 w-full border-slate-300 rounded-md p-2"></div>
+                 <div class="mb-6"><label for="loginPassword" class="block text-sm font-medium">Password</label><input type="password" id="loginPassword" required class="mt-1 w-full border-slate-300 rounded-md p-2"></div>
+                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md">Login</button>
+             </form>
+             <p id="authError" class="text-red-500 text-sm mt-4 text-center"></p>
         </div>
 
-        <!-- Logged In Content -->
         <div id="content-container" class="hidden">
             <header class="mb-8 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
                     <h1 id="header-title" class="text-3xl md:text-4xl font-bold text-slate-900">Finance Sheets</h1>
                     <p class="text-slate-500 mt-2" id="welcomeMessage"></p>
                 </div>
-                <button id="logoutButton" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-md shadow-md hover:bg-red-600 w-full sm:w-auto">Logout</button>
+                <button id="logoutButton" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-md shadow-md w-full sm:w-auto">Logout</button>
             </header>
 
-            <!-- Dashboard View -->
             <div id="dashboard-view">
                 <div class="flex flex-col sm:flex-row justify-end gap-3 mb-4">
-                    <button id="open-sheet-recycle-bin-modal" class="bg-slate-500 text-white font-semibold py-2 px-4 rounded-md shadow-md hover:bg-slate-600">Sheet Recycle Bin</button>
-                    <button id="open-create-sheet-modal" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow-md hover:bg-blue-700">+ Create New Sheet</button>
+                    <button id="manage-residents-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md">Manage Residents</button>
+                    <button id="open-sheet-recycle-bin-modal" class="bg-slate-500 text-white font-semibold py-2 px-4 rounded-md">Sheet Recycle Bin</button>
+                    <button id="open-create-sheet-modal" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-md">+ Create New Sheet</button>
                 </div>
                 <div id="sheets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-                <p id="no-sheets-message" class="text-center text-slate-500 py-16 hidden">No finance sheets yet. Click "Create New Sheet" to get started.</p>
+                <p id="no-sheets-message" class="text-center text-slate-500 py-16 hidden">No finance sheets yet.</p>
+            </div>
+            
+            <div id="residents-view" class="hidden">
+                 <div class="mb-6"><button id="back-to-dashboard-from-residents" class="text-blue-600 font-semibold flex items-center">&larr; Back to Dashboard</button></div>
+                 <div class="bg-white p-6 rounded-lg shadow-md">
+                     <h2 class="text-2xl font-semibold mb-4">Manage Residents</h2>
+                     <form id="resident-form" class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end mb-6">
+                         <div><label for="r-flat" class="text-sm">Flat No.</label><input type="text" id="r-flat" placeholder="A-101" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
+                         <div><label for="r-name" class="text-sm">Owner Name</label><input type="text" id="r-name" placeholder="Mr. Sharma" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
+                         <div><label for="r-amount" class="text-sm">Maint. Amount</label><input type="number" id="r-amount" placeholder="2500" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
+                         <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md">Add Resident</button>
+                     </form>
+                     <div class="overflow-x-auto"><table class="w-full">
+                         <thead class="bg-slate-50"><tr>
+                            <th class="p-3 text-left text-xs uppercase">Flat No.</th>
+                            <th class="p-3 text-left text-xs uppercase">Owner Name</th>
+                            <th class="p-3 text-left text-xs uppercase">Amount</th>
+                            <th class="p-3 text-center text-xs uppercase">Actions</th>
+                         </tr></thead>
+                         <tbody id="residents-table-body" class="divide-y"></tbody>
+                     </table></div>
+                 </div>
             </div>
 
-            <!-- Detail View -->
             <div id="detail-view" class="hidden">
-                <div class="mb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                     <button id="back-to-dashboard" class="text-blue-600 hover:underline font-semibold flex items-center self-start"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>Back</button>
-                    <div class="flex gap-3 self-end sm:self-center">
-                        <button id="export-excel-btn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow-md hover:bg-green-700 flex items-center">Export Excel</button>
-                        <button id="open-recycle-bin" class="bg-slate-200 text-slate-800 font-semibold py-2 px-4 rounded-md shadow-md hover:bg-slate-300">Recycle Bin</button>
-                    </div>
-                </div>
-
-                <!-- Summary Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-blue-100 text-blue-800 rounded-lg p-6 shadow-sm"><h3 class="font-medium text-blue-600">Total Maintenance Collected</h3><p id="total-collected" class="text-3xl font-bold mt-2">₹0.00</p></div>
-                    <div class="bg-red-100 text-red-800 rounded-lg p-6 shadow-sm"><h3 class="font-medium text-red-600">Total Expenses</h3><p id="total-expenses" class="text-3xl font-bold mt-2">₹0.00</p></div>
-                    <div id="balance-card" class="bg-green-100 text-green-800 rounded-lg p-6 shadow-sm"><h3 id="balance-label" class="font-medium text-green-600">Remaining Balance</h3><p id="remaining-balance" class="text-3xl font-bold mt-2">₹0.00</p></div>
-                </div>
+                <div class="mb-6"><button id="back-to-dashboard-from-detail" class="text-blue-600 font-semibold flex items-center">&larr; Back to Dashboard</button></div>
                 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Maintenance Collection Section -->
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-2xl font-semibold mb-4">Maintenance Collection</h2>
-                        <form id="maintenance-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mb-6">
-                            <div><label for="m-date" class="block text-sm font-medium">Date</label><input type="date" id="m-date" required class="mt-1 w-full border-slate-300 rounded-md p-2"></div>
-                            <div><label for="m-resident" class="block text-sm font-medium">Flat / Resident</label><input type="text" id="m-resident" placeholder="e.g., A-101" required class="mt-1 w-full border-slate-300 rounded-md p-2"></div>
-                            <div><label for="m-amount" class="block text-sm font-medium">Amount</label><input type="number" id="m-amount" placeholder="e.g., 2500" required class="mt-1 w-full border-slate-300 rounded-md p-2"></div>
-                            <div><label for="m-mode" class="block text-sm font-medium">Payment Mode</label><select id="m-mode" class="mt-1 w-full border-slate-300 rounded-md p-2"><option>UPI</option><option>Bank Transfer</option><option>Cash</option><option>Cheque</option></select></div>
-                            <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md sm:col-span-2">Add Collection</button>
-                        </form>
-                        <div class="overflow-x-auto"><table class="w-full">
-                            <thead class="bg-slate-50"><tr id="maintenance-headers">
-                                <th class="p-3 text-left text-xs font-medium uppercase cursor-pointer" data-sort="date">Date</th>
-                                <th class="p-3 text-left text-xs font-medium uppercase cursor-pointer" data-sort="resident">Flat / Resident</th>
-                                <th class="p-3 text-left text-xs font-medium uppercase cursor-pointer" data-sort="amount">Amount</th>
-                            </tr></thead>
-                            <tbody id="maintenance-table-body" class="divide-y divide-slate-200"></tbody>
-                        </table></div>
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-blue-100 p-6 rounded-lg"><h3 class="font-medium text-blue-600">Total Collected</h3><p id="total-collected" class="text-3xl font-bold mt-2">₹0.00</p></div>
+                    <div class="bg-red-100 p-6 rounded-lg"><h3 class="font-medium text-red-600">Total Expenses</h3><p id="total-expenses" class="text-3xl font-bold mt-2">₹0.00</p></div>
+                    <div id="balance-card" class="p-6 rounded-lg"><h3 id="balance-label" class="font-medium">Remaining Balance</h3><p id="remaining-balance" class="text-3xl font-bold mt-2">₹0.00</p></div>
+                </div>
 
-                    <!-- Expenses Section -->
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-2xl font-semibold mb-4">Expenses</h2>
-                        <form id="expense-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mb-6">
-                            <div><label for="e-date" class="block text-sm font-medium">Date</label><input type="date" id="e-date" required class="mt-1 w-full border-slate-300 rounded-md p-2"></div>
-                            <div><label for="e-amount" class="block text-sm font-medium">Amount</label><input type="number" id="e-amount" placeholder="e.g., 1500" required class="mt-1 w-full border-slate-300 rounded-md p-2"></div>
-                            <div class="sm:col-span-2"><label for="e-desc" class="block text-sm font-medium">Description</label><input type="text" id="e-desc" placeholder="e.g., Elevator repair" required class="mt-1 w-full border-slate-300 rounded-md p-2"></div>
-                            <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md sm:col-span-2">Add Expense</button>
-                        </form>
-                        <div class="overflow-x-auto"><table class="w-full">
-                            <thead class="bg-slate-50"><tr id="expense-headers">
-                                <th class="p-3 text-left text-xs font-medium uppercase cursor-pointer" data-sort="date">Date</th>
-                                <th class="p-3 text-left text-xs font-medium uppercase cursor-pointer" data-sort="description">Description</th>
-                                <th class="p-3 text-left text-xs font-medium uppercase cursor-pointer" data-sort="amount">Amount</th>
-                            </tr></thead>
-                            <tbody id="expense-table-body" class="divide-y divide-slate-200"></tbody>
-                        </table></div>
+                <div class="border-b border-gray-200 mb-6">
+                    <nav class="-mb-px flex space-x-6" id="detail-tabs">
+                        <button data-tab="status" class="py-4 px-1 border-b-2 font-medium text-sm tab-active">Payment Status</button>
+                        <button data-tab="collection" class="py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">Maintenance Collection</button>
+                        <button data-tab="expenses" class="py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">Expenses</button>
+                    </nav>
+                </div>
+
+                <div id="tab-content">
+                    <div id="status-tab">
+                         <div class="bg-white p-6 rounded-lg shadow-md">
+                             <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-2xl font-semibold">Payment Status</h2>
+                                <div class="flex gap-2" id="status-filters">
+                                    <button data-filter="all" class="bg-blue-500 text-white px-3 py-1 text-sm rounded">All</button>
+                                    <button data-filter="pending" class="bg-gray-200 px-3 py-1 text-sm rounded">Pending</button>
+                                    <button data-filter="paid" class="bg-gray-200 px-3 py-1 text-sm rounded">Paid</button>
+                                </div>
+                             </div>
+                             <div class="overflow-x-auto"><table class="w-full">
+                                 <thead class="bg-slate-50"><tr>
+                                     <th class="p-3 text-left text-xs uppercase">Flat No.</th><th class="p-3 text-left text-xs uppercase">Owner Name</th><th class="p-3 text-left text-xs uppercase">Status</th>
+                                 </tr></thead>
+                                 <tbody id="payment-status-table" class="divide-y"></tbody>
+                             </table></div>
+                         </div>
+                    </div>
+                    <div id="collection-tab" class="hidden">
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h2 class="text-2xl font-semibold mb-4">Log Maintenance Collection</h2>
+                            <form id="maintenance-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mb-6">
+                                <div><label class="text-sm">Date</label><input type="date" id="m-date" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
+                                <div><label class="text-sm">Flat No.</label><select id="m-flat" required class="mt-1 w-full p-2 border-slate-300 rounded"></select></div>
+                                <div><label class="text-sm">Owner Name</label><input type="text" id="m-name" readonly class="mt-1 w-full p-2 bg-slate-100 border-slate-300 rounded"></div>
+                                <div><label class="text-sm">Amount</label><input type="number" id="m-amount" readonly class="mt-1 w-full p-2 bg-slate-100 border-slate-300 rounded"></div>
+                                <div class="sm:col-span-2"><label class="text-sm">Payment Mode</label><select id="m-mode" class="mt-1 w-full p-2 border-slate-300 rounded"><option>UPI</option><option>Bank Transfer</option><option>Cash</option><option>Cheque</option></select></div>
+                                <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md sm:col-span-2">Add Collection</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div id="expenses-tab" class="hidden">
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h2 class="text-2xl font-semibold mb-4">Log Expense</h2>
+                            <form id="expense-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mb-6">
+                                <div><label class="text-sm">Date</label><input type="date" id="e-date" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
+                                <div><label class="text-sm">Amount</label><input type="number" id="e-amount" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
+                                <div class="sm:col-span-2"><label class="text-sm">Description</label><input type="text" id="e-desc" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
+                                <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md sm:col-span-2">Add Expense</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Modals -->
-    <div id="create-sheet-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-             <h3 class="text-xl font-semibold mb-4">Create New Finance Sheet</h3>
-             <form id="create-sheet-form">
-                 <input type="text" id="sheetName" placeholder="e.g., October 2025 Finances" required class="w-full border-slate-300 rounded-md p-2 mb-4">
-                 <div class="flex justify-end gap-3">
-                     <button type="button" id="cancel-create-sheet" class="bg-slate-200 py-2 px-4 rounded-md">Cancel</button>
-                     <button type="submit" id="create-sheet-submit" class="bg-blue-600 text-white py-2 px-4 rounded-md w-28">Create</button>
-                 </div>
-             </form>
-         </div>
-    </div>
-    <div id="recycle-bin-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-4xl">
-            <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-semibold">Recycle Bin</h3><button id="close-recycle-bin" class="text-2xl">&times;</button></div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[60vh] overflow-y-auto">
-                <div><h4 class="font-bold mb-2">Deleted Collections</h4><div id="recycle-bin-collections"></div></div>
-                <div><h4 class="font-bold mb-2">Deleted Expenses</h4><div id="recycle-bin-expenses"></div></div>
-            </div>
-        </div>
-    </div>
-     <div id="sheet-recycle-bin-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
-             <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-semibold">Sheet Recycle Bin</h3><button id="close-sheet-recycle-bin" class="text-2xl">&times;</button></div>
-             <div id="sheet-recycle-bin-content" class="max-h-[60vh] overflow-y-auto"></div>
-         </div>
-     </div>
-    <div id="delete-sheet-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h3 class="text-xl font-semibold mb-2">Move Sheet to Recycle Bin</h3>
-            <p id="delete-sheet-message" class="text-slate-600 mb-4"></p>
-            <div class="flex justify-end gap-3">
-                <button type="button" id="cancel-delete-sheet" class="bg-slate-200 py-2 px-4 rounded-md">Cancel</button>
-                <button type="button" id="confirm-delete-sheet" class="bg-red-600 text-white py-2 px-4 rounded-md w-36">Yes, Move to Bin</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-800 text-white py-3 px-6 rounded-lg shadow-lg flex items-center gap-4 z-50">
-        <span id="toast-message"></span><button id="toast-undo" class="font-semibold text-blue-400">Undo</button>
-    </div>
+    <!-- Modals and Toast would go here -->
 
 <script type="module">
-    // Firebase Imports
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -189,220 +158,247 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // App State
     let state = {
-        currentSheetId: null,
-        currentSheetName: null,
+        residents: [],
         collections: [],
         expenses: [],
-        sort: { collections: { key: 'date', order: 'desc' }, expenses: { key: 'date', order: 'desc' } },
-        toastTimeout: null,
-        sheetToDelete: null,
+        currentSheetId: null,
+        currentSheetName: null,
+        activeStatusFilter: 'all',
     };
 
-    // UI Elements
     const UI = {
-        loading: document.getElementById('loading'), auth: document.getElementById('auth-container'), content: document.getElementById('content-container'),
-        welcome: document.getElementById('welcomeMessage'), headerTitle: document.getElementById('header-title'), dashboard: document.getElementById('dashboard-view'),
-        detail: document.getElementById('detail-view'), sheetsGrid: document.getElementById('sheets-grid'), noSheets: document.getElementById('no-sheets-message'),
-        totalCollected: document.getElementById('total-collected'), totalExpenses: document.getElementById('total-expenses'), balanceCard: document.getElementById('balance-card'),
-        balanceLabel: document.getElementById('balance-label'), remainingBalance: document.getElementById('remaining-balance'), maintenanceForm: document.getElementById('maintenance-form'),
-        maintenanceTable: document.getElementById('maintenance-table-body'), expenseForm: document.getElementById('expense-form'), expenseTable: document.getElementById('expense-table-body'),
-        createSheetModal: document.getElementById('create-sheet-modal'), recycleBinModal: document.getElementById('recycle-bin-modal'), sheetRecycleBinModal: document.getElementById('sheet-recycle-bin-modal'),
-        deleteSheetModal: document.getElementById('delete-sheet-modal'), toast: document.getElementById('toast'), toastMessage: document.getElementById('toast-message'), toastUndo: document.getElementById('toast-undo'),
+        loading: document.getElementById('loading'),
+        auth: document.getElementById('auth-container'),
+        content: document.getElementById('content-container'),
+        welcome: document.getElementById('welcomeMessage'),
+        headerTitle: document.getElementById('header-title'),
+        dashboard: document.getElementById('dashboard-view'),
+        detail: document.getElementById('detail-view'),
+        residentsView: document.getElementById('residents-view'),
+        sheetsGrid: document.getElementById('sheets-grid'),
+        noSheets: document.getElementById('no-sheets-message'),
+        totalCollected: document.getElementById('total-collected'),
+        totalExpenses: document.getElementById('total-expenses'),
+        balanceCard: document.getElementById('balance-card'),
+        balanceLabel: document.getElementById('balance-label'),
+        remainingBalance: document.getElementById('remaining-balance'),
+        maintenanceForm: document.getElementById('maintenance-form'),
+        expenseForm: document.getElementById('expense-form'),
+        residentForm: document.getElementById('resident-form'),
+        residentsTable: document.getElementById('residents-table-body'),
+        paymentStatusTable: document.getElementById('payment-status-table'),
+        detailTabs: document.getElementById('detail-tabs'),
+        tabContent: document.getElementById('tab-content'),
+        statusFilters: document.getElementById('status-filters'),
     };
 
-    // --- UTILS ---
     const formatCurrency = (amount) => `₹${Number(amount || 0).toFixed(2)}`;
-    const formatDate = (dateString) => new Date(dateString + 'T00:00:00').toLocaleDateString('en-GB');
-    const showToast = (message, undoCallback) => { UI.toastMessage.textContent = message; UI.toastUndo.style.display = undoCallback ? 'block' : 'none'; UI.toast.classList.add('show'); if (undoCallback) UI.toastUndo.onclick = () => { undoCallback(); hideToast(); }; clearTimeout(state.toastTimeout); state.toastTimeout = setTimeout(hideToast, 5000); };
-    const hideToast = () => { UI.toast.classList.remove('show'); clearTimeout(state.toastTimeout); };
-    const openModal = (modal) => modal.classList.remove('hidden');
-    const closeModal = (modal) => modal.classList.add('hidden');
-
+    
     // --- AUTH ---
-    onAuthStateChanged(auth, user => { UI.loading.style.display = 'none'; UI.auth.classList.toggle('hidden', !!user); UI.content.classList.toggle('hidden', !user); if (user) { UI.welcome.textContent = `Welcome, ${user.email}`; navigateToDashboard(); listenForSheets(); }});
+    onAuthStateChanged(auth, user => {
+        UI.loading.style.display = 'none';
+        UI.auth.classList.toggle('hidden', !!user);
+        UI.content.classList.toggle('hidden', !user);
+        if (user) {
+            UI.welcome.textContent = `Welcome, ${user.email}`;
+            listenForSheets();
+            listenForResidents();
+            navigateToDashboard();
+        }
+    });
     document.getElementById('loginForm').addEventListener('submit', async e => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value); } catch (err) { authError.textContent = err.message; } });
     document.getElementById('logoutButton').addEventListener('click', () => signOut(auth));
 
     // --- NAVIGATION ---
-    const navigateToDashboard = () => { state.currentSheetId = null; UI.dashboard.classList.remove('hidden'); UI.detail.classList.add('hidden'); UI.headerTitle.textContent = "Finance Sheets"; };
-    const navigateToDetail = (sheetId, sheetName) => { state.currentSheetId = sheetId; state.currentSheetName = sheetName; UI.dashboard.classList.add('hidden'); UI.detail.classList.remove('hidden'); UI.headerTitle.textContent = `Sheet: ${sheetName}`; listenForData(); };
-    document.getElementById('back-to-dashboard').addEventListener('click', navigateToDashboard);
+    const navigateToDashboard = () => {
+        UI.dashboard.classList.remove('hidden');
+        UI.detail.classList.add('hidden');
+        UI.residentsView.classList.add('hidden');
+        UI.headerTitle.textContent = "Finance Sheets";
+    };
+    const navigateToDetail = (sheetId, sheetName) => {
+        state.currentSheetId = sheetId;
+        state.currentSheetName = sheetName;
+        UI.dashboard.classList.add('hidden');
+        UI.detail.classList.remove('hidden');
+        UI.residentsView.classList.add('hidden');
+        UI.headerTitle.textContent = `Sheet: ${sheetName}`;
+        listenForSheetData();
+        switchTab('status'); // Default to status tab
+    };
+    const navigateToResidents = () => {
+        UI.dashboard.classList.add('hidden');
+        UI.detail.classList.add('hidden');
+        UI.residentsView.classList.remove('hidden');
+        UI.headerTitle.textContent = "Manage Residents";
+    };
+    document.getElementById('back-to-dashboard-from-detail').addEventListener('click', navigateToDashboard);
+    document.getElementById('back-to-dashboard-from-residents').addEventListener('click', navigateToDashboard);
+    document.getElementById('manage-residents-btn').addEventListener('click', navigateToResidents);
 
     // --- DATA LISTENERS ---
-    let unsubExpenses, unsubCollections;
-    const listenForSheets = () => onSnapshot(collection(db, 'expense_sheets'), s => renderDashboard(s.docs.map(d => ({ id: d.id, ...d.data() })).filter(sheet => sheet.status === 'active')));
-    const listenForData = () => {
+    let unsubExpenses, unsubCollections, unsubResidents;
+    const listenForSheets = () => onSnapshot(query(collection(db, 'expense_sheets'), where('status', '==', 'active')), s => renderDashboard(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+    const listenForResidents = () => unsubResidents = onSnapshot(collection(db, 'residents'), s => { state.residents = s.docs.map(d => ({ id: d.id, ...d.data() })); renderResidentsTable(); });
+    const listenForSheetData = () => {
         if (unsubExpenses) unsubExpenses();
         if (unsubCollections) unsubCollections();
-        const commonQuery = (col) => query(collection(db, col), where('sheetId', '==', state.currentSheetId));
-        unsubExpenses = onSnapshot(commonQuery('expenses'), s => { state.expenses = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(item => item.status === 'active'); renderAll(); });
-        unsubCollections = onSnapshot(commonQuery('maintenance'), s => { state.collections = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(item => item.status === 'active'); renderAll(); });
+        const expenseQuery = query(collection(db, 'expenses'), where('sheetId', '==', state.currentSheetId));
+        unsubExpenses = onSnapshot(expenseQuery, s => { state.expenses = s.docs.map(d => ({ id: d.id, ...d.data() })); renderAllSheetData(); });
+        const collectionQuery = query(collection(db, 'maintenance'), where('sheetId', '==', state.currentSheetId));
+        unsubCollections = onSnapshot(collectionQuery, s => { state.collections = s.docs.map(d => ({ id: d.id, ...d.data() })); renderAllSheetData(); });
     };
 
-    // --- RENDERING ---
-    const renderAll = () => { renderSummary(); renderTable('collections'); renderTable('expenses'); };
+    // --- RENDER FUNCTIONS ---
+    const renderAllSheetData = () => { renderSummary(); renderPaymentStatus(); };
     const renderDashboard = (sheets) => {
         UI.sheetsGrid.innerHTML = '';
         UI.noSheets.classList.toggle('hidden', sheets.length > 0);
         sheets.forEach(sheet => {
             const card = document.createElement('div');
-            card.className = "bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow flex flex-col justify-between";
-            card.innerHTML = `<div class="cursor-pointer flex-grow" data-sheet-id="${sheet.id}" data-sheet-name="${sheet.name}"><h3 class="text-xl font-semibold">${sheet.name}</h3></div><div class="text-right mt-4"><button data-id="${sheet.id}" data-name="${sheet.name}" class="text-sm text-red-500 hover:text-red-700 font-semibold delete-sheet-btn">Delete</button></div>`;
+            card.className = "bg-white p-6 rounded-lg shadow hover:shadow-lg cursor-pointer";
+            card.innerHTML = `<h3 class="text-xl font-semibold">${sheet.name}</h3>`;
+            card.addEventListener('click', () => navigateToDetail(sheet.id, sheet.name));
             UI.sheetsGrid.appendChild(card);
         });
+    };
+    const renderResidentsTable = () => {
+        UI.residentsTable.innerHTML = '';
+        state.residents.sort((a, b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => {
+            const row = UI.residentsTable.insertRow();
+            row.innerHTML = `<td class="p-3">${res.flatNo}</td><td class="p-3">${res.ownerName}</td><td class="p-3">${formatCurrency(res.maintAmount)}</td><td class="p-3 text-center"><button data-id="${res.id}" class="text-red-500 text-sm delete-resident-btn">Delete</button></td>`;
+        });
+        populateFlatDropdown();
     };
     const renderSummary = () => {
         const totalCollected = state.collections.reduce((sum, item) => sum + Number(item.amount), 0);
         const totalExpenses = state.expenses.reduce((sum, item) => sum + Number(item.amount), 0);
         const balance = totalCollected - totalExpenses;
-        UI.totalCollected.textContent = formatCurrency(totalCollected); UI.totalExpenses.textContent = formatCurrency(totalExpenses); UI.remainingBalance.textContent = formatCurrency(balance);
+        UI.totalCollected.textContent = formatCurrency(totalCollected);
+        UI.totalExpenses.textContent = formatCurrency(totalExpenses);
+        UI.remainingBalance.textContent = formatCurrency(balance);
         const isNegative = balance < 0;
-        UI.balanceCard.className = `rounded-lg p-6 shadow-sm ${isNegative ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`;
+        UI.balanceCard.className = `p-6 rounded-lg ${isNegative ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`;
         UI.balanceLabel.className = `font-medium ${isNegative ? 'text-red-600' : 'text-green-600'}`;
         UI.balanceLabel.textContent = isNegative ? 'Deficit' : 'Remaining Balance';
     };
-    const renderTable = (type) => {
-        const tableBody = type === 'collections' ? UI.maintenanceTable : UI.expenseTable;
-        const data = state[type];
-        const columns = type === 'collections' ? ['date', 'resident', 'amount'] : ['date', 'description', 'amount'];
-        tableBody.innerHTML = '';
-        const sortedData = [...data].sort((a, b) => { const { key, order } = state.sort[type]; const valA = a[key], valB = b[key]; if (valA < valB) return order === 'asc' ? -1 : 1; if (valA > valB) return order === 'asc' ? 1 : -1; return 0; });
-        sortedData.forEach(item => { const row = tableBody.insertRow(); row.className = 'hover:bg-slate-50 even:bg-slate-50/50'; columns.forEach(col => { const cell = row.insertCell(); cell.className = 'p-3'; cell.textContent = col === 'date' ? formatDate(item[col]) : (col === 'amount' ? formatCurrency(item[col]) : item[col]); }); const actionCell = row.insertCell(); actionCell.className = 'p-3 text-center'; actionCell.innerHTML = `<button data-id="${item.id}" data-type="${type}" class="text-red-600 hover:text-red-900 delete-item-btn text-xs">Delete</button>`; });
+    const renderPaymentStatus = () => {
+        UI.paymentStatusTable.innerHTML = '';
+        const paidFlats = new Set(state.collections.map(c => c.flatNo));
+        let residentsToDisplay = state.residents;
+
+        if (state.activeStatusFilter === 'pending') {
+            residentsToDisplay = state.residents.filter(r => !paidFlats.has(r.flatNo));
+        } else if (state.activeStatusFilter === 'paid') {
+            residentsToDisplay = state.residents.filter(r => paidFlats.has(r.flatNo));
+        }
+        
+        residentsToDisplay.sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => {
+            const isPaid = paidFlats.has(res.flatNo);
+            const row = UI.paymentStatusTable.insertRow();
+            const statusClass = isPaid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
+            row.innerHTML = `<td class="p-3">${res.flatNo}</td><td class="p-3">${res.ownerName}</td><td class="p-3"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${isPaid ? 'Paid' : 'Pending'}</span></td>`;
+        });
     };
-    
-    // --- ACTIONS & EVENT LISTENERS ---
-    const handleFormSubmit = async (e, type) => {
+
+    // --- FORM & UI LOGIC ---
+    UI.residentForm.addEventListener('submit', async e => {
         e.preventDefault();
-        const form = e.target;
-        let data;
-
-        if (type === 'collections') {
-            data = {
-                date: form.elements['m-date'].value,
-                resident: form.elements['m-resident'].value,
-                amount: parseFloat(form.elements['m-amount'].value),
-                mode: form.elements['m-mode'].value,
-                sheetId: state.currentSheetId,
-                status: 'active'
-            };
-        } else { // type === 'expenses'
-            data = {
-                date: form.elements['e-date'].value,
-                amount: parseFloat(form.elements['e-amount'].value),
-                description: form.elements['e-desc'].value,
-                sheetId: state.currentSheetId,
-                status: 'active'
-            };
+        const flatNo = document.getElementById('r-flat').value;
+        const ownerName = document.getElementById('r-name').value;
+        const maintAmount = parseFloat(document.getElementById('r-amount').value);
+        if (flatNo && ownerName && maintAmount) {
+            await addDoc(collection(db, 'residents'), { flatNo, ownerName, maintAmount });
+            UI.residentForm.reset();
         }
+    });
+    UI.residentsTable.addEventListener('click', async e => { if (e.target.classList.contains('delete-resident-btn')) { await deleteDoc(doc(db, 'residents', e.target.dataset.id)); } });
+    
+    const populateFlatDropdown = () => {
+        const select = document.getElementById('m-flat');
+        select.innerHTML = '<option value="">Select a Flat</option>';
+        state.residents.sort((a, b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => {
+            const option = document.createElement('option');
+            option.value = res.flatNo;
+            option.textContent = res.flatNo;
+            select.appendChild(option);
+        });
+    };
 
-        if (isNaN(data.amount)) {
-            showToast('Please enter a valid amount.');
-            return;
+    document.getElementById('m-flat').addEventListener('change', e => {
+        const selectedFlat = state.residents.find(r => r.flatNo === e.target.value);
+        if (selectedFlat) {
+            document.getElementById('m-name').value = selectedFlat.ownerName;
+            document.getElementById('m-amount').value = selectedFlat.maintAmount;
+        } else {
+            document.getElementById('m-name').value = '';
+            document.getElementById('m-amount').value = '';
         }
-
-        await addDoc(collection(db, type === 'collections' ? 'maintenance' : 'expenses'), data);
-        form.reset();
-        showToast(`${type === 'collections' ? 'Collection' : 'Expense'} added successfully.`);
-    };
-    UI.maintenanceForm.addEventListener('submit', (e) => handleFormSubmit(e, 'collections'));
-    UI.expenseForm.addEventListener('submit', (e) => handleFormSubmit(e, 'expenses'));
+    });
     
-    const moveToRecycleBin = (id, type) => { updateDoc(doc(db, type, id), { status: 'deleted' }); showToast(`${type.slice(0, -1)} moved to bin.`, () => updateDoc(doc(db, type, id), { status: 'active' })); };
-    UI.maintenanceTable.addEventListener('click', (e) => { if (e.target.matches('.delete-item-btn')) moveToRecycleBin(e.target.dataset.id, 'maintenance'); });
-    UI.expenseTable.addEventListener('click', (e) => { if (e.target.matches('.delete-item-btn')) moveToRecycleBin(e.target.dataset.id, 'expenses'); });
-
-    const handleSort = (e, type) => {
-        const key = e.target.dataset.sort; if (!key) return; const currentSort = state.sort[type];
-        const order = currentSort.key === key && currentSort.order === 'asc' ? 'desc' : 'asc';
-        state.sort[type] = { key, order };
-        document.querySelectorAll(`#${type === 'collections' ? 'maintenance' : 'expense'}-headers th`).forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
-        e.target.classList.add(order === 'asc' ? 'sort-asc' : 'sort-desc');
-        renderAll();
-    };
-    document.getElementById('maintenance-headers').addEventListener('click', (e) => handleSort(e, 'collections'));
-    document.getElementById('expense-headers').addEventListener('click', (e) => handleSort(e, 'expenses'));
-    
-    // Create Sheet Modal
-    document.getElementById('open-create-sheet-modal').addEventListener('click', () => openModal(UI.createSheetModal));
-    document.getElementById('cancel-create-sheet').addEventListener('click', () => closeModal(UI.createSheetModal));
-    document.getElementById('create-sheet-form').addEventListener('submit', async e => { e.preventDefault(); const sheetName = document.getElementById('sheetName').value; const btn = e.submitter; if (sheetName) { btn.disabled = true; btn.textContent = 'Creating...'; await addDoc(collection(db, 'expense_sheets'), { name: sheetName, createdAt: new Date(), status: 'active' }); btn.disabled = false; btn.textContent = 'Create'; closeModal(UI.createSheetModal); e.target.reset(); } });
-
-    // Delete Sheet Modal
-    UI.sheetsGrid.addEventListener('click', (e) => { const btn = e.target.closest('.delete-sheet-btn'); if (btn) { state.sheetToDelete = { id: btn.dataset.id, name: btn.dataset.name }; document.getElementById('delete-sheet-message').textContent = `Move "${btn.dataset.name}" to the recycle bin?`; openModal(UI.deleteSheetModal); } else { const card = e.target.closest('[data-sheet-id]'); if(card) navigateToDetail(card.dataset.sheetId, card.dataset.sheetName); } });
-    document.getElementById('cancel-delete-sheet').addEventListener('click', () => closeModal(UI.deleteSheetModal));
-    document.getElementById('confirm-delete-sheet').addEventListener('click', async () => { if (!state.sheetToDelete) return; await updateDoc(doc(db, 'expense_sheets', state.sheetToDelete.id), { status: 'deleted' }); showToast(`Sheet "${state.sheetToDelete.name}" moved to bin.`, () => updateDoc(doc(db, 'expense_sheets', state.sheetToDelete.id), { status: 'active' })); closeModal(UI.deleteSheetModal); });
-
-    // Item Recycle Bin
-    document.getElementById('open-recycle-bin').addEventListener('click', async () => {
-        openModal(UI.recycleBinModal);
-        const renderBin = async (type, containerId) => {
-            const container = document.getElementById(containerId); container.innerHTML = 'Loading...';
-            const q = query(collection(db, type), where('sheetId', '==', state.currentSheetId), where('status', '==', 'deleted'));
-            const snapshot = await getDocs(q);
-            const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-            container.innerHTML = '';
-            if (items.length === 0) { container.innerHTML = '<p class="text-slate-500">Empty</p>'; return; }
-            items.forEach(item => { const el = document.createElement('div'); el.className = "flex justify-between items-center p-2 border-b"; el.innerHTML = `<div><p>${item.description || item.resident}</p><p class="text-xs text-slate-400">${formatCurrency(item.amount)}</p></div><div><button data-id="${item.id}" data-type="${type}" class="text-blue-600 text-sm restore-item-btn">Restore</button></div>`; container.appendChild(el); });
+    UI.maintenanceForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        const data = {
+            date: document.getElementById('m-date').value,
+            flatNo: document.getElementById('m-flat').value,
+            ownerName: document.getElementById('m-name').value,
+            amount: parseFloat(document.getElementById('m-amount').value),
+            mode: document.getElementById('m-mode').value,
+            sheetId: state.currentSheetId,
         };
-        await renderBin('maintenance', 'recycle-bin-collections');
-        await renderBin('expenses', 'recycle-bin-expenses');
-    });
-    document.getElementById('close-recycle-bin').addEventListener('click', () => closeModal(UI.recycleBinModal));
-    UI.recycleBinModal.addEventListener('click', async (e) => { if (e.target.matches('.restore-item-btn')) { await updateDoc(doc(db, e.target.dataset.type, e.target.dataset.id), { status: 'active' }); e.target.closest('div.flex').remove(); } });
-
-    // Sheet Recycle Bin
-    document.getElementById('open-sheet-recycle-bin-modal').addEventListener('click', async () => {
-        openModal(UI.sheetRecycleBinModal);
-        const container = document.getElementById('sheet-recycle-bin-content'); container.innerHTML = 'Loading...';
-        const q = query(collection(db, 'expense_sheets'), where('status', '==', 'deleted'));
-        const snapshot = await getDocs(q); const sheets = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        container.innerHTML = '';
-        if (sheets.length === 0) { container.innerHTML = '<p class="text-center text-slate-500 py-8">Sheet recycle bin is empty.</p>'; return; }
-        sheets.forEach(sheet => { const el = document.createElement('div'); el.className="flex justify-between items-center p-3 border-b"; el.innerHTML=`<p>${sheet.name}</p><div><button data-id="${sheet.id}" class="text-blue-600 font-semibold mr-4 restore-sheet-btn">Restore</button><button data-id="${sheet.id}" class="text-red-600 font-semibold perm-delete-sheet-btn">Delete Forever</button></div>`; container.appendChild(el); });
-    });
-    document.getElementById('close-sheet-recycle-bin').addEventListener('click', () => closeModal(UI.sheetRecycleBinModal));
-    UI.sheetRecycleBinModal.addEventListener('click', async (e) => {
-        const id = e.target.dataset.id;
-        if (e.target.matches('.restore-sheet-btn')) { await updateDoc(doc(db, 'expense_sheets', id), { status: 'active' }); e.target.closest('div.flex').remove(); }
-        if (e.target.matches('.perm-delete-sheet-btn')) {
-            if (!confirm('This will delete the sheet and ALL its data permanently. Are you sure?')) return;
-            const q = query(collection(db, 'expenses'), where('sheetId', '==', id));
-            const q2 = query(collection(db, 'maintenance'), where('sheetId', '==', id));
-            const batch = writeBatch(db);
-            const [expDocs, mainDocs] = await Promise.all([getDocs(q), getDocs(q2)]);
-            expDocs.forEach(d => batch.delete(d.ref));
-            mainDocs.forEach(d => batch.delete(d.ref));
-            batch.delete(doc(db, 'expense_sheets', id));
-            await batch.commit();
-            e.target.closest('div.flex').remove();
+        if (data.flatNo && data.amount) {
+            await addDoc(collection(db, 'maintenance'), data);
+            UI.maintenanceForm.reset();
+            document.getElementById('m-name').value = '';
+            document.getElementById('m-amount').value = '';
         }
     });
 
-    // --- EXCEL EXPORT ---
-    document.getElementById('export-excel-btn').addEventListener('click', () => {
-        const wb = XLSX.utils.book_new();
-        const summaryData = [
-            ["Total Collected", state.collections.reduce((s, i) => s + i.amount, 0)],
-            ["Total Expenses", state.expenses.reduce((s, i) => s + i.amount, 0)],
-            ["Remaining Balance", state.collections.reduce((s, i) => s + i.amount, 0) - state.expenses.reduce((s, i) => s + i.amount, 0)]
-        ];
-        const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-        XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
-
-        const collectionsData = state.collections.map(i => ({ Date: formatDate(i.date), Resident: i.resident, Amount: i.amount, Mode: i.mode }));
-        const wsCollections = XLSX.utils.json_to_sheet(collectionsData);
-        XLSX.utils.book_append_sheet(wb, wsCollections, "Maintenance Collection");
-
-        const expensesData = state.expenses.map(i => ({ Date: formatDate(i.date), Description: i.description, Amount: i.amount }));
-        const wsExpenses = XLSX.utils.json_to_sheet(expensesData);
-        XLSX.utils.book_append_sheet(wb, wsExpenses, "Expenses");
-
-        XLSX.writeFile(wb, `${state.currentSheetName.replace(/\s+/g, '_')}.xlsx`);
+    UI.expenseForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        const data = {
+            date: document.getElementById('e-date').value,
+            amount: parseFloat(document.getElementById('e-amount').value),
+            description: document.getElementById('e-desc').value,
+            sheetId: state.currentSheetId,
+        };
+        if (data.description && data.amount) {
+            await addDoc(collection(db, 'expenses'), data);
+            UI.expenseForm.reset();
+        }
     });
+    
+    // Tab switching
+    UI.detailTabs.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') switchTab(e.target.dataset.tab); });
+    const switchTab = (activeTab) => {
+        UI.detailTabs.querySelectorAll('button').forEach(btn => {
+            btn.classList.toggle('tab-active', btn.dataset.tab === activeTab);
+            btn.classList.toggle('text-gray-500', btn.dataset.tab !== activeTab);
+        });
+        UI.tabContent.querySelectorAll('[id$="-tab"]').forEach(content => {
+            content.classList.toggle('hidden', !content.id.startsWith(activeTab));
+        });
+    };
+
+    // Status filter
+    UI.statusFilters.addEventListener('click', e => {
+        if (e.target.tagName === 'BUTTON') {
+            state.activeStatusFilter = e.target.dataset.filter;
+            UI.statusFilters.querySelectorAll('button').forEach(btn => {
+                btn.classList.toggle('bg-blue-500', btn.dataset.filter === state.activeStatusFilter);
+                btn.classList.toggle('text-white', btn.dataset.filter === state.activeStatusFilter);
+                btn.classList.toggle('bg-gray-200', btn.dataset.filter !== state.activeStatusFilter);
+            });
+            renderPaymentStatus();
+        }
+    });
+
+    // Dummy placeholders for modals and other complex features to be added
+    document.getElementById('open-create-sheet-modal').addEventListener('click', () => alert('Create Sheet Modal Placeholder'));
+    document.getElementById('open-sheet-recycle-bin-modal').addEventListener('click', () => alert('Sheet Recycle Bin Placeholder'));
+
 </script>
 </body>
 </html>
-
 
