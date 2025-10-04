@@ -125,6 +125,19 @@
                                 <div class="sm:col-span-2"><label class="text-sm">Payment Mode</label><select id="m-mode" class="mt-1 w-full p-2 border-slate-300 rounded"><option>UPI</option><option>Bank Transfer</option><option>Cash</option><option>Cheque</option></select></div>
                                 <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md sm:col-span-2">Add Collection</button>
                             </form>
+                            <h3 class="text-xl font-semibold mt-8 mb-4">Collection Log</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-slate-50"><tr>
+                                        <th class="p-3 text-left text-xs uppercase">Date</th>
+                                        <th class="p-3 text-left text-xs uppercase">Flat / Resident</th>
+                                        <th class="p-3 text-left text-xs uppercase">Amount</th>
+                                        <th class="p-3 text-left text-xs uppercase">Mode</th>
+                                    </tr></thead>
+                                    <tbody id="collection-log-table" class="divide-y"></tbody>
+                                </table>
+                                <p id="no-collections-message" class="text-center text-slate-500 py-8 hidden">No collections logged yet.</p>
+                            </div>
                         </div>
                     </div>
                     <div id="expenses-tab" class="hidden">
@@ -136,6 +149,18 @@
                                 <div class="sm:col-span-2"><label class="text-sm">Description</label><input type="text" id="e-desc" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
                                 <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md sm:col-span-2">Add Expense</button>
                             </form>
+                            <h3 class="text-xl font-semibold mt-8 mb-4">Expense Log</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-slate-50"><tr>
+                                        <th class="p-3 text-left text-xs uppercase">Date</th>
+                                        <th class="p-3 text-left text-xs uppercase">Description</th>
+                                        <th class="p-3 text-left text-xs uppercase">Amount</th>
+                                    </tr></thead>
+                                    <tbody id="expense-log-table" class="divide-y"></tbody>
+                                </table>
+                                <p id="no-expenses-message" class="text-center text-slate-500 py-8 hidden">No expenses logged yet.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -195,16 +220,9 @@
     const db = getFirestore(app);
 
     let state = {
-        residents: [],
-        sheets: [],
-        collections: [],
-        expenses: [],
-        currentSheetId: null,
-        currentSheetName: null,
-        activeStatusFilter: 'all',
-        editingResidentId: null,
-        sheetToDelete: null,
-        toastTimeout: null,
+        residents: [], sheets: [], collections: [], expenses: [],
+        currentSheetId: null, currentSheetName: null, activeStatusFilter: 'all',
+        editingResidentId: null, sheetToDelete: null, toastTimeout: null,
     };
 
     const UI = {
@@ -218,6 +236,8 @@
         tabContent: document.getElementById('tab-content'), statusFilters: document.getElementById('status-filters'), residentSubmitBtn: document.getElementById('resident-submit-btn'),
         residentCancelBtn: document.getElementById('resident-cancel-btn'), toast: document.getElementById('toast'), toastMessage: document.getElementById('toast-message'),
         createSheetModal: document.getElementById('create-sheet-modal'), sheetRecycleBinModal: document.getElementById('sheet-recycle-bin-modal'), deleteSheetModal: document.getElementById('delete-sheet-modal'),
+        collectionLogTable: document.getElementById('collection-log-table'), noCollectionsMessage: document.getElementById('no-collections-message'),
+        expenseLogTable: document.getElementById('expense-log-table'), noExpensesMessage: document.getElementById('no-expenses-message'),
     };
 
     const formatCurrency = (amount) => `₹${Number(amount || 0).toFixed(2)}`;
@@ -251,36 +271,13 @@
     };
 
     // --- RENDER FUNCTIONS ---
-    const renderAllSheetData = () => { renderSummary(); renderPaymentStatus(); };
+    const renderAllSheetData = () => { renderSummary(); renderPaymentStatus(); renderCollectionLog(); renderExpenseLog(); };
     const renderDashboard = () => { const activeSheets = state.sheets.filter(s => s.status === 'active'); UI.sheetsGrid.innerHTML = ''; UI.noSheets.classList.toggle('hidden', activeSheets.length > 0); activeSheets.forEach(sheet => { const card = document.createElement('div'); card.className = "bg-white p-6 rounded-lg shadow hover:shadow-lg flex flex-col justify-between"; card.innerHTML = `<div class="cursor-pointer flex-grow" data-sheet-id="${sheet.id}" data-sheet-name="${sheet.name}"><h3 class="text-xl font-semibold">${sheet.name}</h3></div><div class="text-right mt-4"><button data-id="${sheet.id}" data-name="${sheet.name}" class="text-sm text-red-500 hover:text-red-700 font-semibold delete-sheet-btn">Delete</button></div>`; UI.sheetsGrid.appendChild(card); }); };
     const renderResidentsTable = () => { UI.residentsTable.innerHTML = ''; state.residents.sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => { const row = UI.residentsTable.insertRow(); const status = res.status || 'Sold'; const statusClass = status === 'Sold' ? 'text-green-600' : 'text-slate-500'; row.innerHTML = `<td class="p-3">${res.flatNo}</td><td class="p-3">${res.ownerName}</td><td class="p-3">${formatCurrency(res.maintAmount)}</td><td class="p-3 font-medium ${statusClass}">${status}</td><td class="p-3 text-center space-x-4"><button data-id="${res.id}" class="text-blue-500 text-sm edit-resident-btn">Edit</button><button data-id="${res.id}" class="text-red-500 text-sm delete-resident-btn">Delete</button></td>`; }); };
     const renderSummary = () => { const totalCollected = state.collections.reduce((s,i) => s + i.amount, 0); const totalExpenses = state.expenses.reduce((s,i) => s + i.amount, 0); const balance = totalCollected - totalExpenses; UI.totalCollected.textContent = formatCurrency(totalCollected); UI.totalExpenses.textContent = formatCurrency(totalExpenses); UI.remainingBalance.textContent = formatCurrency(balance); const isNeg = balance < 0; UI.balanceCard.className = `p-6 rounded-lg ${isNeg ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`; UI.balanceLabel.className = `font-medium ${isNeg ? 'text-red-600' : 'text-green-600'}`; UI.balanceLabel.textContent = isNeg ? 'Deficit' : 'Remaining Balance'; };
-    const renderPaymentStatus = () => {
-        UI.paymentStatusTable.innerHTML = '';
-        const paidFlats = new Set(state.collections.map(c => c.flatNo));
-        let residentsToDisplay = state.residents;
-
-        if (state.activeStatusFilter === 'pending') {
-            residentsToDisplay = state.residents.filter(r => (r.status || 'Sold') === 'Sold' && !paidFlats.has(r.flatNo));
-        } else if (state.activeStatusFilter === 'paid') {
-            residentsToDisplay = state.residents.filter(r => (r.status || 'Sold') === 'Sold' && paidFlats.has(r.flatNo));
-        }
-        
-        residentsToDisplay.sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => {
-            const status = res.status || 'Sold';
-            const row = UI.paymentStatusTable.insertRow();
-            let statusHTML;
-
-            if (status === 'Sold') {
-                const isPaid = paidFlats.has(res.flatNo);
-                const statusClass = isPaid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
-                statusHTML = `<span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${isPaid ? 'Paid' : 'Pending'}</span>`;
-            } else {
-                statusHTML = `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">N/A</span>`;
-            }
-            row.innerHTML = `<td class="p-3">${res.flatNo}</td><td class="p-3">${res.ownerName}</td><td class="p-3">${statusHTML}</td>`;
-        });
-    };
+    const renderPaymentStatus = () => { UI.paymentStatusTable.innerHTML = ''; const paidFlats = new Set(state.collections.map(c => c.flatNo)); let residentsToDisplay = state.residents; if (state.activeStatusFilter === 'pending') residentsToDisplay = state.residents.filter(r => (r.status || 'Sold') === 'Sold' && !paidFlats.has(r.flatNo)); if (state.activeStatusFilter === 'paid') residentsToDisplay = state.residents.filter(r => (r.status || 'Sold') === 'Sold' && paidFlats.has(r.flatNo)); residentsToDisplay.sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => { const status = res.status || 'Sold'; const row = UI.paymentStatusTable.insertRow(); let statusHTML; if (status === 'Sold') { const isPaid = paidFlats.has(res.flatNo); const statusClass = isPaid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'; statusHTML = `<span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${isPaid ? 'Paid' : 'Pending'}</span>`; } else { statusHTML = `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">N/A</span>`; } row.innerHTML = `<td class="p-3">${res.flatNo}</td><td class="p-3">${res.ownerName}</td><td class="p-3">${statusHTML}</td>`; }); };
+    const renderCollectionLog = () => { UI.collectionLogTable.innerHTML = ''; const collections = state.collections.sort((a,b) => new Date(b.date) - new Date(a.date)); UI.noCollectionsMessage.classList.toggle('hidden', collections.length > 0); collections.forEach(item => { const row = UI.collectionLogTable.insertRow(); row.className = 'hover:bg-slate-50'; row.innerHTML = `<td class="p-3 text-sm">${new Date(item.date + 'T00:00:00').toLocaleDateString('en-GB')}</td><td class="p-3 text-sm">${item.flatNo} - ${item.ownerName}</td><td class="p-3 text-sm font-medium">${formatCurrency(item.amount)}</td><td class="p-3 text-sm">${item.mode}</td>`; }); };
+    const renderExpenseLog = () => { UI.expenseLogTable.innerHTML = ''; const expenses = state.expenses.sort((a,b) => new Date(b.date) - new Date(a.date)); UI.noExpensesMessage.classList.toggle('hidden', expenses.length > 0); expenses.forEach(item => { const row = UI.expenseLogTable.insertRow(); row.className = 'hover:bg-slate-50'; row.innerHTML = `<td class="p-3 text-sm">${new Date(item.date + 'T00:00:00').toLocaleDateString('en-GB')}</td><td class="p-3 text-sm">${item.description}</td><td class="p-3 text-sm font-medium">${formatCurrency(item.amount)}</td>`; }); };
 
     // --- RESIDENT MANAGEMENT ---
     UI.residentForm.addEventListener('submit', async e => { e.preventDefault(); const btn = UI.residentSubmitBtn; btn.disabled = true; const data = { flatNo: document.getElementById('r-flat').value, ownerName: document.getElementById('r-name').value, maintAmount: parseFloat(document.getElementById('r-amount').value), status: document.getElementById('r-status').value }; if (state.editingResidentId) { btn.textContent = 'Updating...'; await updateDoc(doc(db, 'residents', state.editingResidentId), data); showToast('Resident updated.'); } else { btn.textContent = 'Adding...'; await addDoc(collection(db, 'residents'), data); showToast('Resident added.'); } cancelResidentEdit(); });
