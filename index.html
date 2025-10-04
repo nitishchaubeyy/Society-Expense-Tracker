@@ -217,7 +217,7 @@
     const listenForGlobalData = () => {
         if(unsubSheets) unsubSheets(); if(unsubResidents) unsubResidents();
         unsubSheets = onSnapshot(query(collection(db, 'expense_sheets')), s => { state.sheets = s.docs.map(d => ({ id: d.id, ...d.data() })); renderDashboard(); });
-        unsubResidents = onSnapshot(collection(db, 'residents'), s => { state.residents = s.docs.map(d => ({ id: d.id, ...d.data() })); renderResidentsTable(); });
+        unsubResidents = onSnapshot(collection(db, 'residents'), s => { state.residents = s.docs.map(d => ({ id: d.id, ...d.data() })); renderResidentsTable(); populateFlatDropdown(); });
     };
     const listenForSheetData = async () => {
         if (unsubExpenses) unsubExpenses(); if (unsubCollections) unsubCollections();
@@ -286,7 +286,49 @@
     const renderSheetRecycleBin = () => { const deletedSheets = state.sheets.filter(s => s.status === 'deleted'); const container = sheetRecycleBinModal.querySelector('#sheet-recycle-bin-content'); container.innerHTML = ''; if (deletedSheets.length === 0) { container.innerHTML = '<p class="text-center text-slate-500 py-8">Sheet recycle bin is empty.</p>'; return; } deletedSheets.forEach(sheet => { const el = document.createElement('div'); el.className="flex justify-between items-center p-3 border-b"; el.innerHTML=`<p>${sheet.name}</p><div><button data-id="${sheet.id}" class="text-blue-600 font-semibold mr-4 restore-sheet-btn">Restore</button><button data-id="${sheet.id}" class="text-red-600 font-semibold perm-delete-sheet-btn">Delete Forever</button></div>`; container.appendChild(el); }); };
 
     // --- EXCEL EXPORT ---
-    document.getElementById('export-excel-btn').addEventListener('click', async () => { /* unchanged */ });
+    document.getElementById('export-excel-btn').addEventListener('click', async () => {
+        const openingBalance = await calculateOpeningBalance();
+        const totalCollected = state.collections.reduce((s, i) => s + i.amount, 0);
+        const totalExpenses = state.expenses.reduce((s, i) => s + i.amount, 0);
+        const closingBalance = openingBalance + totalCollected - totalExpenses;
+        const wb = XLSX.utils.book_new();
+
+        const headerStyle = { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "4F81BD" } } };
+        const currencyFormat = '"₹"#,##0.00';
+
+        // Summary Sheet
+        const summaryData = [
+            [{v: `Financial Summary: ${state.currentSheetName}`, s: { font: { bold: true, sz: 16 } }}], [],
+            [{v: 'Category', s: headerStyle}, {v: 'Amount', s: headerStyle}],
+            ['Opening Balance', {v: openingBalance, t: 'n', z: currencyFormat }],
+            ['Total Maintenance Collected', {v: totalCollected, t: 'n', z: currencyFormat }],
+            ['Total Expenses', {v: totalExpenses, t: 'n', z: currencyFormat }],
+            [{v: 'Closing Balance', s: {font: {bold: true}}}, {v: closingBalance, t: 'n', z: currencyFormat, s: closingBalance < 0 ? { font: { color: {rgb: "FF0000"}}} : {}}],
+        ];
+        const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+        wsSummary['!cols'] = [{wch: 30}, {wch: 20}];
+        XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+        // Maintenance Sheet
+        const maintHeaders = ['Date', 'Flat No.', 'Owner Name', 'Amount', 'Payment Mode'];
+        const maintData = state.collections.sort((a,b)=> new Date(b.date) - new Date(a.date)).map(i => [new Date(i.date + 'T00:00:00').toLocaleDateString('en-GB'), i.flatNo, i.ownerName, i.amount, i.mode]);
+        const wsMaint = XLSX.utils.aoa_to_sheet([maintHeaders, ...maintData]);
+        maintHeaders.forEach((h, i) => { const cell = wsMaint[XLSX.utils.encode_cell({c: i, r: 0})]; if(cell) cell.s = headerStyle; });
+        for(let i=0; i < maintData.length; i++) { const cell = wsMaint[XLSX.utils.encode_cell({c: 3, r: i+1})]; if(cell) { cell.t = 'n'; cell.z = currencyFormat; } }
+        wsMaint['!cols'] = [{wch: 12}, {wch: 12}, {wch: 25}, {wch: 15}, {wch: 15}];
+        XLSX.utils.book_append_sheet(wb, wsMaint, 'Maintenance Collection');
+
+        // Expense Sheet
+        const expHeaders = ['Date', 'Description', 'Amount'];
+        const expData = state.expenses.sort((a,b)=> new Date(b.date) - new Date(a.date)).map(i => [new Date(i.date + 'T00:00:00').toLocaleDateString('en-GB'), i.description, i.amount]);
+        const wsExp = XLSX.utils.aoa_to_sheet([expHeaders, ...expData]);
+        expHeaders.forEach((h, i) => { const cell = wsExp[XLSX.utils.encode_cell({c: i, r: 0})]; if(cell) cell.s = headerStyle; });
+        for(let i=0; i < expData.length; i++) { const cell = wsExp[XLSX.utils.encode_cell({c: 2, r: i+1})]; if(cell) { cell.t = 'n'; cell.z = currencyFormat; } }
+        wsExp['!cols'] = [{wch: 12}, {wch: 40}, {wch: 15}];
+        XLSX.utils.book_append_sheet(wb, wsExp, 'Expenses');
+
+        XLSX.writeFile(wb, `${state.currentSheetName.replace(/\s+/g, '_')}_Report.xlsx`);
+    });
 </script>
 </body>
 </html>
