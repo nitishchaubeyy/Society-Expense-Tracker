@@ -33,13 +33,21 @@
         <div id="content-container" class="hidden">
             <header class="mb-8 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
-                    <h1 id="header-title" class="text-3xl md:text-4xl font-bold text-slate-900">Finance Sheets</h1>
+                    <h1 id="header-title" class="text-3xl md:text-4xl font-bold text-slate-900">Finance Dashboard</h1>
                     <p class="text-slate-500 mt-2" id="welcomeMessage"></p>
                 </div>
                 <button id="logoutButton" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-md shadow-md w-full sm:w-auto">Logout</button>
             </header>
 
             <div id="dashboard-view">
+                <div class="mb-8">
+                    <div id="total-balance-card" class="bg-teal-600 text-white p-6 rounded-lg shadow-lg">
+                        <h3 class="font-medium text-teal-100">Total Society Balance (from Summaries)</h3>
+                        <p id="total-society-balance" class="text-4xl font-bold mt-2">₹0.00</p>
+                    </div>
+                </div>
+
+                <h2 class="text-2xl font-semibold text-slate-800 mb-4">Detailed Finance Sheets</h2>
                 <div class="flex flex-col sm:flex-row justify-end gap-3 mb-4">
                     <button id="manage-residents-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md">Manage Residents</button>
                     <button id="open-sheet-recycle-bin-modal" class="bg-slate-500 text-white font-semibold py-2 px-4 rounded-md">Sheet Recycle Bin</button>
@@ -47,6 +55,15 @@
                 </div>
                 <div id="sheets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
                 <p id="no-sheets-message" class="text-center text-slate-500 py-16 hidden">No finance sheets yet.</p>
+
+                <div class="mt-12">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-slate-800">High-Level Monthly Summary</h2>
+                        <button id="open-add-month-modal" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow-md hover:bg-green-700">+ Add Month Summary</button>
+                    </div>
+                    <div id="monthly-summary-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+                    <p id="no-summary-message" class="text-center text-slate-500 py-16 hidden">No monthly summaries added yet.</p>
+                </div>
             </div>
             
             <div id="residents-view" class="hidden">
@@ -178,46 +195,47 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    let state = { residents: [], sheets: [], collections: [], expenses: [], currentSheetId: null, currentSheetName: null, currentSheetDate: null, activeStatusFilter: 'all', editingResidentId: null, sheetToDelete: null, toastTimeout: null };
+    let state = { residents: [], sheets: [], monthlySummaries: [], collections: [], expenses: [], currentSheetId: null, currentSheetName: null, currentSheetDate: null, activeStatusFilter: 'all', editingResidentId: null, editingSummaryId: null, sheetToDelete: null, summaryToDeleteId: null, toastTimeout: null };
     const UI = {
         app: document.getElementById('app'), loading: document.getElementById('loading'), auth: document.getElementById('auth-container'), content: document.getElementById('content-container'),
         welcome: document.getElementById('welcomeMessage'), headerTitle: document.getElementById('header-title'), dashboard: document.getElementById('dashboard-view'),
         detail: document.getElementById('detail-view'), residentsView: document.getElementById('residents-view'), sheetsGrid: document.getElementById('sheets-grid'),
-        noSheets: document.getElementById('no-sheets-message'), openingBalance: document.getElementById('opening-balance'), totalCollected: document.getElementById('total-collected'),
-        totalExpenses: document.getElementById('total-expenses'), balanceCard: document.getElementById('balance-card'), balanceLabel: document.getElementById('balance-label'),
-        closingBalance: document.getElementById('closing-balance'), residentForm: document.getElementById('resident-form'), residentsTable: document.getElementById('residents-table-body'),
-        detailTabs: document.getElementById('detail-tabs'), tabContent: document.getElementById('tab-content'), residentSubmitBtn: document.getElementById('resident-submit-btn'),
-        residentCancelBtn: document.getElementById('resident-cancel-btn'), toast: document.getElementById('toast'), toastMessage: document.getElementById('toast-message'),
-        paymentStatusTable: document.getElementById('payment-status-table'), statusFilters: document.getElementById('status-filters'),
-        maintenanceForm: document.getElementById('maintenance-form'), collectionLogTable: document.getElementById('collection-log-table'), noCollectionsMessage: document.getElementById('no-collections-message'),
-        expenseForm: document.getElementById('expense-form'), expenseLogTable: document.getElementById('expense-log-table'), noExpensesMessage: document.getElementById('no-expenses-message'),
+        noSheets: document.getElementById('no-sheets-message'), 
+        totalSocietyBalance: document.getElementById('total-society-balance'),
+        monthlySummaryGrid: document.getElementById('monthly-summary-grid'), noSummaryMessage: document.getElementById('no-summary-message'),
+        openingBalance: document.getElementById('opening-balance'), totalCollected: document.getElementById('total-collected'), totalExpenses: document.getElementById('total-expenses'),
+        balanceCard: document.getElementById('balance-card'), balanceLabel: document.getElementById('balance-label'), closingBalance: document.getElementById('closing-balance'),
+        residentForm: document.getElementById('resident-form'), residentsTable: document.getElementById('residents-table-body'), detailTabs: document.getElementById('detail-tabs'),
+        tabContent: document.getElementById('tab-content'), residentSubmitBtn: document.getElementById('resident-submit-btn'), residentCancelBtn: document.getElementById('resident-cancel-btn'),
+        toast: document.getElementById('toast'), toastMessage: document.getElementById('toast-message'), paymentStatusTable: document.getElementById('payment-status-table'),
+        statusFilters: document.getElementById('status-filters'), maintenanceForm: document.getElementById('maintenance-form'), collectionLogTable: document.getElementById('collection-log-table'),
+        noCollectionsMessage: document.getElementById('no-collections-message'), expenseForm: document.getElementById('expense-form'), expenseLogTable: document.getElementById('expense-log-table'),
+        noExpensesMessage: document.getElementById('no-expenses-message'),
     };
     
-    const formatCurrency = (amount) => `₹${Number(amount || 0).toFixed(2)}`;
+    const formatCurrency = (amount) => `₹${Number(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const showToast = (message, isError = false) => { UI.toastMessage.textContent = message; UI.toast.classList.toggle('bg-red-600', isError); UI.toast.classList.toggle('bg-slate-800', !isError); UI.toast.classList.add('show'); clearTimeout(state.toastTimeout); state.toastTimeout = setTimeout(() => UI.toast.classList.remove('show'), 3000); };
     const createModal = (id, title, content) => { let modal = document.getElementById(id); if (modal) modal.remove(); modal = document.createElement('div'); modal.id = id; modal.className = 'hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'; modal.innerHTML = `<div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">${title ? `<h3 class="text-xl font-semibold mb-4">${title}</h3>` : ''}${content}</div>`; UI.app.appendChild(modal); return modal; };
     const openModal = (modal) => modal.classList.remove('hidden');
     const closeModal = (modal) => modal.classList.add('hidden');
     
-    // --- AUTH ---
     onAuthStateChanged(auth, user => { UI.loading.style.display = 'none'; UI.auth.classList.toggle('hidden', !!user); UI.content.classList.toggle('hidden', !user); if (user) { UI.welcome.textContent = `Welcome, ${user.email}`; listenForGlobalData(); navigateToDashboard(); }});
     document.getElementById('loginForm').addEventListener('submit', async e => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value); } catch (err) { authError.textContent = err.message; } });
     document.getElementById('logoutButton').addEventListener('click', () => signOut(auth));
 
-    // --- NAVIGATION & VIEWS ---
-    const navigateToDashboard = () => { UI.dashboard.classList.remove('hidden'); UI.detail.classList.add('hidden'); UI.residentsView.classList.add('hidden'); UI.headerTitle.textContent = "Finance Sheets"; };
+    const navigateToDashboard = () => { UI.dashboard.classList.remove('hidden'); UI.detail.classList.add('hidden'); UI.residentsView.classList.add('hidden'); UI.headerTitle.textContent = "Finance Dashboard"; };
     const navigateToDetail = (sheetId, sheetName, sheetDate) => { state.currentSheetId = sheetId; state.currentSheetName = sheetName; state.currentSheetDate = sheetDate; UI.dashboard.classList.add('hidden'); UI.detail.classList.remove('hidden'); UI.residentsView.classList.add('hidden'); UI.headerTitle.textContent = `Sheet: ${sheetName}`; listenForSheetData(); switchTab('status'); };
     const navigateToResidents = () => { UI.dashboard.classList.add('hidden'); UI.detail.classList.add('hidden'); UI.residentsView.classList.remove('hidden'); UI.headerTitle.textContent = "Manage Residents"; cancelResidentEdit(); };
     document.getElementById('back-to-dashboard-from-detail').addEventListener('click', navigateToDashboard);
     document.getElementById('back-to-dashboard-from-residents').addEventListener('click', navigateToDashboard);
     document.getElementById('manage-residents-btn').addEventListener('click', navigateToResidents);
 
-    // --- DATA LISTENERS ---
-    let unsubExpenses, unsubCollections, unsubResidents, unsubSheets;
+    let unsubExpenses, unsubCollections, unsubResidents, unsubSheets, unsubSummary;
     const listenForGlobalData = () => {
-        if(unsubSheets) unsubSheets(); if(unsubResidents) unsubResidents();
+        if(unsubSheets) unsubSheets(); if(unsubResidents) unsubResidents(); if(unsubSummary) unsubSummary();
         unsubSheets = onSnapshot(query(collection(db, 'expense_sheets')), s => { state.sheets = s.docs.map(d => ({ id: d.id, ...d.data() })); renderDashboard(); });
         unsubResidents = onSnapshot(collection(db, 'residents'), s => { state.residents = s.docs.map(d => ({ id: d.id, ...d.data() })); renderResidentsTable(); populateFlatDropdown(); });
+        unsubSummary = onSnapshot(collection(db, 'monthly_summary'), s => { state.monthlySummaries = s.docs.map(d => ({ id: d.id, ...d.data() })); renderMonthlySummary(); });
     };
     const listenForSheetData = async () => {
         if (unsubExpenses) unsubExpenses(); if (unsubCollections) unsubCollections();
@@ -228,7 +246,6 @@
         unsubCollections = onSnapshot(collectionQuery, s => { state.collections = s.docs.map(d => ({ id: d.id, ...d.data() })); renderAllSheetData(openingBalance); });
     };
 
-    // --- RENDER FUNCTIONS ---
     const renderAllSheetData = (openingBalance) => { renderSummary(openingBalance); renderPaymentStatus(); renderCollectionLog(); renderExpenseLog(); };
     const renderDashboard = () => { const activeSheets = state.sheets.filter(s => s.status === 'active').sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis()); UI.sheetsGrid.innerHTML = ''; UI.noSheets.classList.toggle('hidden', activeSheets.length > 0); activeSheets.forEach(sheet => { const card = document.createElement('div'); card.className = "bg-white p-6 rounded-lg shadow hover:shadow-lg flex flex-col justify-between"; card.innerHTML = `<div class="cursor-pointer flex-grow" data-sheet-id="${sheet.id}" data-sheet-name="${sheet.name}" data-sheet-date="${sheet.createdAt.toMillis()}"><h3 class="text-xl font-semibold">${sheet.name}</h3><p class="text-sm text-slate-400">${sheet.createdAt.toDate().toLocaleDateString()}</p></div><div class="text-right mt-4"><button data-id="${sheet.id}" data-name="${sheet.name}" class="text-sm text-red-500 hover:text-red-700 font-semibold delete-sheet-btn">Delete</button></div>`; UI.sheetsGrid.appendChild(card); }); };
     const renderResidentsTable = () => { UI.residentsTable.innerHTML = ''; state.residents.sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => { const row = UI.residentsTable.insertRow(); const status = res.status || 'Sold'; const statusClass = status === 'Sold' ? 'text-green-600' : 'text-slate-500'; row.innerHTML = `<td class="p-3">${res.flatNo}</td><td class="p-3">${res.ownerName}</td><td class="p-3">${formatCurrency(res.maintAmount)}</td><td class="p-3 font-medium ${statusClass}">${status}</td><td class="p-3 text-center space-x-4"><button data-id="${res.id}" class="text-blue-500 text-sm edit-resident-btn">Edit</button><button data-id="${res.id}" class="text-red-500 text-sm delete-resident-btn">Delete</button></td>`; }); };
@@ -236,7 +253,8 @@
     const renderPaymentStatus = () => { UI.paymentStatusTable.innerHTML = ''; const paidFlats = new Set(state.collections.map(c => c.flatNo)); let residentsToDisplay = state.residents; if (state.activeStatusFilter === 'pending') { residentsToDisplay = state.residents.filter(r => (r.status || 'Sold') === 'Sold' && !paidFlats.has(r.flatNo)); } else if (state.activeStatusFilter === 'paid') { residentsToDisplay = state.residents.filter(r => (r.status || 'Sold') === 'Sold' && paidFlats.has(r.flatNo)); } residentsToDisplay.sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => { const status = res.status || 'Sold'; const row = UI.paymentStatusTable.insertRow(); let statusHTML; if (status === 'Sold') { const isPaid = paidFlats.has(res.flatNo); const statusClass = isPaid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'; statusHTML = `<span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${isPaid ? 'Paid' : 'Pending'}</span>`; } else { statusHTML = `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">N/A</span>`; } row.innerHTML = `<td class="p-3">${res.flatNo}</td><td class="p-3">${res.ownerName}</td><td class="p-3">${statusHTML}</td>`; }); };
     const renderCollectionLog = () => { UI.collectionLogTable.innerHTML = ''; const collections = state.collections.sort((a,b) => new Date(b.date) - new Date(a.date)); UI.noCollectionsMessage.classList.toggle('hidden', collections.length > 0); collections.forEach(item => { const row = UI.collectionLogTable.insertRow(); row.className = 'hover:bg-slate-50'; row.innerHTML = `<td class="p-3 text-sm">${new Date(item.date + 'T00:00:00').toLocaleDateString('en-GB')}</td><td class="p-3 text-sm">${item.flatNo} - ${item.ownerName}</td><td class="p-3 text-sm font-medium">${formatCurrency(item.amount)}</td><td class="p-3 text-sm">${item.mode}</td>`; }); };
     const renderExpenseLog = () => { UI.expenseLogTable.innerHTML = ''; const expenses = state.expenses.sort((a,b) => new Date(b.date) - new Date(a.date)); UI.noExpensesMessage.classList.toggle('hidden', expenses.length > 0); expenses.forEach(item => { const row = UI.expenseLogTable.insertRow(); row.className = 'hover:bg-slate-50'; row.innerHTML = `<td class="p-3 text-sm">${new Date(item.date + 'T00:00:00').toLocaleDateString('en-GB')}</td><td class="p-3 text-sm">${item.description}</td><td class="p-3 text-sm font-medium">${formatCurrency(item.amount)}</td>`; }); };
-
+    const renderMonthlySummary = () => { UI.monthlySummaryGrid.innerHTML = ''; const sortedSummaries = state.monthlySummaries.sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis()); UI.noSummaryMessage.classList.toggle('hidden', sortedSummaries.length > 0); let totalBalance = 0; sortedSummaries.forEach(summary => { const balance = summary.totalCollection - summary.totalExpense; totalBalance += balance; const card = document.createElement('div'); card.className = 'bg-white p-4 rounded-lg shadow'; card.innerHTML = `<h4 class="font-bold text-lg text-slate-800">${summary.monthName}</h4><div class="mt-2 text-sm space-y-1"><p class="flex justify-between"><span>Collection:</span> <span class="font-semibold text-green-600">${formatCurrency(summary.totalCollection)}</span></p><p class="flex justify-between"><span>Expenses:</span> <span class="font-semibold text-red-600">${formatCurrency(summary.totalExpense)}</span></p></div><div class="text-xs text-right mt-3 space-x-3"><button data-id="${summary.id}" class="text-blue-500 hover:underline edit-summary-btn">Edit</button><button data-id="${summary.id}" data-name="${summary.monthName}" class="text-red-500 hover:underline delete-summary-btn">Delete</button></div>`; UI.monthlySummaryGrid.appendChild(card); }); UI.totalSocietyBalance.textContent = formatCurrency(totalBalance); UI.totalSocietyBalance.parentElement.classList.toggle('bg-red-600', totalBalance < 0); UI.totalSocietyBalance.parentElement.classList.toggle('bg-teal-600', totalBalance >= 0); };
+    
     // --- CORE LOGIC ---
     const calculateOpeningBalance = async () => {
         const previousSheets = state.sheets.filter(s => s.status === 'active' && s.createdAt.toMillis() < state.currentSheetDate);
@@ -260,21 +278,49 @@
     UI.residentsTable.addEventListener('click', async e => { const id = e.target.dataset.id; if (e.target.matches('.edit-resident-btn')) editResident(id); if (e.target.matches('.delete-resident-btn')) { if (confirm('Are you sure?')) { await deleteDoc(doc(db, 'residents', id)); showToast('Resident deleted.', true); } } });
 
     // --- SHEET DETAIL LOGIC ---
-    const populateFlatDropdown = () => { const select = document.getElementById('m-flat'); select.innerHTML = '<option value="">Select a Flat</option>'; state.residents.filter(r => (r.status || 'Sold') === 'Sold').sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => { const option = document.createElement('option'); option.value = res.flatNo; option.textContent = `${res.flatNo} - ${res.ownerName}`; select.appendChild(option); }); };
-    document.getElementById('m-flat').addEventListener('change', e => { const res = state.residents.find(r => r.flatNo === e.target.value); if (res) { document.getElementById('m-name').value = res.ownerName; document.getElementById('m-amount').value = res.maintAmount; } else { document.getElementById('m-name').value = ''; document.getElementById('m-amount').value = ''; } });
-    UI.maintenanceForm.addEventListener('submit', async e => { e.preventDefault(); const flatNo = document.getElementById('m-flat').value; if (state.collections.some(c => c.flatNo === flatNo)) { showToast(`Payment for ${flatNo} already logged.`, true); return; } const data = { date: document.getElementById('m-date').value, flatNo, ownerName: document.getElementById('m-name').value, amount: parseFloat(document.getElementById('m-amount').value), mode: document.getElementById('m-mode').value, sheetId: state.currentSheetId }; if (data.flatNo && data.amount) { await addDoc(collection(db, 'maintenance'), data); UI.maintenanceForm.reset(); document.getElementById('m-name').value = ''; document.getElementById('m-amount').value = ''; showToast('Collection added.'); } });
-    UI.expenseForm.addEventListener('submit', async e => { e.preventDefault(); const data = { date: document.getElementById('e-date').value, amount: parseFloat(document.getElementById('e-amount').value), description: document.getElementById('e-desc').value, sheetId: state.currentSheetId, }; if (data.description && data.amount) { await addDoc(collection(db, 'expenses'), data); UI.expenseForm.reset(); showToast('Expense added.'); } });
-    UI.detailTabs.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') switchTab(e.target.dataset.tab); });
-    const switchTab = (activeTab) => { UI.detailTabs.querySelectorAll('button').forEach(btn => { btn.classList.toggle('tab-active', btn.dataset.tab === activeTab); btn.classList.toggle('text-gray-500', btn.dataset.tab !== activeTab); }); UI.tabContent.querySelectorAll('[id$="-tab"]').forEach(content => content.classList.toggle('hidden', !content.id.startsWith(activeTab))); };
-    UI.statusFilters.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { state.activeStatusFilter = e.target.dataset.filter; UI.statusFilters.querySelectorAll('button').forEach(btn => { btn.classList.toggle('bg-blue-500', btn.dataset.filter === state.activeStatusFilter); btn.classList.toggle('text-white', btn.dataset.filter === state.activeStatusFilter); btn.classList.toggle('bg-gray-200', btn.dataset.filter !== state.activeStatusFilter); }); renderPaymentStatus(); } });
+    const populateFlatDropdown = () => { const select = document.getElementById('m-flat'); if(!select) return; select.innerHTML = '<option value="">Select a Flat</option>'; state.residents.filter(r => (r.status || 'Sold') === 'Sold').sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => { const option = document.createElement('option'); option.value = res.flatNo; option.textContent = `${res.flatNo} - ${res.ownerName}`; select.appendChild(option); }); };
+    document.querySelector('#detail-view')?.addEventListener('change', e => { if(e.target.id === 'm-flat') { const res = state.residents.find(r => r.flatNo === e.target.value); const nameInput = document.getElementById('m-name'); const amountInput = document.getElementById('m-amount'); if (res) { nameInput.value = res.ownerName; amountInput.value = res.maintAmount; } else { nameInput.value = ''; amountInput.value = ''; } } });
+    document.querySelector('#maintenance-form')?.addEventListener('submit', async e => { e.preventDefault(); const flatNo = document.getElementById('m-flat').value; if (state.collections.some(c => c.flatNo === flatNo)) { showToast(`Payment for ${flatNo} already logged.`, true); return; } const data = { date: document.getElementById('m-date').value, flatNo, ownerName: document.getElementById('m-name').value, amount: parseFloat(document.getElementById('m-amount').value), mode: document.getElementById('m-mode').value, sheetId: state.currentSheetId }; if (data.flatNo && data.amount) { await addDoc(collection(db, 'maintenance'), data); e.target.reset(); document.getElementById('m-name').value = ''; document.getElementById('m-amount').value = ''; showToast('Collection added.'); } });
+    document.querySelector('#expense-form')?.addEventListener('submit', async e => { e.preventDefault(); const data = { date: document.getElementById('e-date').value, amount: parseFloat(document.getElementById('e-amount').value), description: document.getElementById('e-desc').value, sheetId: state.currentSheetId, }; if (data.description && data.amount) { await addDoc(collection(db, 'expenses'), data); e.target.reset(); showToast('Expense added.'); } });
+    document.querySelector('#detail-tabs')?.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') switchTab(e.target.dataset.tab); });
+    const switchTab = (activeTab) => { const tabs = document.querySelector('#detail-tabs'); const content = document.querySelector('#tab-content'); if(!tabs || !content) return; tabs.querySelectorAll('button').forEach(btn => { btn.classList.toggle('tab-active', btn.dataset.tab === activeTab); btn.classList.toggle('text-gray-500', btn.dataset.tab !== activeTab); }); content.querySelectorAll('[id$="-tab"]').forEach(c => c.classList.toggle('hidden', !c.id.startsWith(activeTab))); };
+    document.querySelector('#status-filters')?.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { state.activeStatusFilter = e.target.dataset.filter; document.querySelector('#status-filters').querySelectorAll('button').forEach(btn => { btn.classList.toggle('bg-blue-500', btn.dataset.filter === state.activeStatusFilter); btn.classList.toggle('text-white', btn.dataset.filter === state.activeStatusFilter); btn.classList.toggle('bg-gray-200', btn.dataset.filter !== state.activeStatusFilter); }); renderPaymentStatus(); } });
     
-    // --- SHEET MANAGEMENT & MODALS ---
+    // --- SHEET & MODAL MANAGEMENT ---
     const createSheetModal = createModal('create-sheet-modal', 'Create New Finance Sheet', `<form id="create-sheet-form"><input type="text" id="sheetName" placeholder="e.g., October 2025 Finances" required class="w-full border-slate-300 rounded-md p-2 mb-4"><div class="flex justify-end gap-3"><button type="button" class="bg-slate-200 py-2 px-4 rounded-md" data-close>Cancel</button><button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md w-28">Create</button></div></form>`);
     const deleteSheetModal = createModal('delete-sheet-modal', 'Move Sheet to Recycle Bin', `<p id="delete-sheet-message" class="text-slate-600 mb-4"></p><div class="flex justify-end gap-3"><button type="button" class="bg-slate-200 py-2 px-4 rounded-md" data-close>Cancel</button><button type="button" id="confirm-delete-sheet" class="bg-red-600 text-white py-2 px-4 rounded-md">Yes, Move to Bin</button></div>`);
     const sheetRecycleBinModal = createModal('sheet-recycle-bin-modal', 'Sheet Recycle Bin', `<div id="sheet-recycle-bin-content" class="max-h-[60vh] overflow-y-auto"></div><div class="flex justify-end mt-4"><button type="button" class="bg-slate-200 py-2 px-4 rounded-md" data-close>Close</button></div>`);
-    
+    const addMonthModal = createModal('add-month-modal', 'Add New Month Summary', `<form id="add-month-form"><div class="mb-4"><label for="month-name" class="block text-sm">Month Name</label><input type="text" id="month-name" placeholder="e.g., October 2025" required class="mt-1 w-full p-2 border-slate-300 rounded"></div><div class="mb-4"><label for="month-collection" class="block text-sm">Total Collection</label><input type="number" id="month-collection" required class="mt-1 w-full p-2 border-slate-300 rounded"></div><div class="mb-4"><label for="month-expense" class="block text-sm">Total Expense</label><input type="number" id="month-expense" required class="mt-1 w-full p-2 border-slate-300 rounded"></div><div class="flex justify-end gap-3"><button type="button" class="bg-slate-200 py-2 px-4 rounded-md" data-close>Cancel</button><button type="submit" class="bg-green-600 text-white py-2 px-4 rounded-md w-28">Save</button></div></form>`);
+    const editMonthModal = createModal('edit-month-modal', 'Edit Month Summary', `<form id="edit-month-form"><div class="mb-4"><label for="edit-month-name" class="block text-sm">Month Name</label><input type="text" id="edit-month-name" required class="mt-1 w-full p-2 border-slate-300 rounded"></div><div class="mb-4"><label for="edit-month-collection" class="block text-sm">Total Collection</label><input type="number" id="edit-month-collection" required class="mt-1 w-full p-2 border-slate-300 rounded"></div><div class="mb-4"><label for="edit-month-expense" class="block text-sm">Total Expense</label><input type="number" id="edit-month-expense" required class="mt-1 w-full p-2 border-slate-300 rounded"></div><div class="flex justify-end gap-3"><button type="button" class="bg-slate-200 py-2 px-4 rounded-md" data-close>Cancel</button><button type="submit" class="bg-green-600 text-white py-2 px-4 rounded-md w-28">Update</button></div></form>`);
+    const deleteSummaryModal = createModal('delete-summary-modal', 'Delete Summary', `<p id="delete-summary-message" class="text-slate-600 mb-4"></p><div class="flex justify-end gap-3"><button type="button" class="bg-slate-200 py-2 px-4 rounded-md" data-close>Cancel</button><button type="button" id="confirm-delete-summary" class="bg-red-600 text-white py-2 px-4 rounded-md">Yes, Delete</button></div>`);
+
     document.getElementById('open-create-sheet-modal').addEventListener('click', () => openModal(createSheetModal));
     document.getElementById('open-sheet-recycle-bin-modal').addEventListener('click', () => { openModal(sheetRecycleBinModal); renderSheetRecycleBin(); });
+    document.getElementById('open-add-month-modal').addEventListener('click', () => openModal(addMonthModal));
+
+    addMonthModal.addEventListener('click', e => { if(e.target.matches('[data-close]')) closeModal(addMonthModal); });
+    addMonthModal.querySelector('form').addEventListener('submit', async e => { e.preventDefault(); const data = { monthName: e.target.elements['month-name'].value, totalCollection: parseFloat(e.target.elements['month-collection'].value), totalExpense: parseFloat(e.target.elements['month-expense'].value), createdAt: new Date(), }; if(data.monthName && !isNaN(data.totalCollection) && !isNaN(data.totalExpense)) { await addDoc(collection(db, 'monthly_summary'), data); closeModal(addMonthModal); e.target.reset(); showToast('Monthly summary added.'); } else { showToast('Please fill all fields correctly.', true); }});
+    editMonthModal.addEventListener('click', e => { if(e.target.matches('[data-close]')) closeModal(editMonthModal); });
+    editMonthModal.querySelector('form').addEventListener('submit', async e => { e.preventDefault(); if (!state.editingSummaryId) return; const data = { monthName: e.target.elements['edit-month-name'].value, totalCollection: parseFloat(e.target.elements['edit-month-collection'].value), totalExpense: parseFloat(e.target.elements['edit-month-expense'].value) }; await updateDoc(doc(db, 'monthly_summary', state.editingSummaryId), data); closeModal(editMonthModal); showToast('Summary updated.'); state.editingSummaryId = null; });
+    deleteSummaryModal.addEventListener('click', async e => { if(e.target.matches('[data-close]')) { closeModal(deleteSummaryModal); } if(e.target.matches('#confirm-delete-summary')) { if(state.summaryToDeleteId) { await deleteDoc(doc(db, 'monthly_summary', state.summaryToDeleteId)); showToast('Summary deleted.', true); } closeModal(deleteSummaryModal); state.summaryToDeleteId = null; } });
+    UI.monthlySummaryGrid.addEventListener('click', e => {
+        const id = e.target.dataset.id;
+        if (e.target.matches('.edit-summary-btn')) {
+            state.editingSummaryId = id;
+            const summary = state.monthlySummaries.find(s => s.id === id);
+            const form = editMonthModal.querySelector('form');
+            form.elements['edit-month-name'].value = summary.monthName;
+            form.elements['edit-month-collection'].value = summary.totalCollection;
+            form.elements['edit-month-expense'].value = summary.totalExpense;
+            openModal(editMonthModal);
+        }
+        if (e.target.matches('.delete-summary-btn')) {
+            state.summaryToDeleteId = id;
+            const name = e.target.dataset.name;
+            deleteSummaryModal.querySelector('#delete-summary-message').textContent = `Are you sure you want to permanently delete the summary for "${name}"?`;
+            openModal(deleteSummaryModal);
+        }
+    });
     
     createSheetModal.addEventListener('click', e => { if(e.target.matches('[data-close]')) closeModal(createSheetModal); });
     createSheetModal.querySelector('form').addEventListener('submit', async e => { e.preventDefault(); const name = e.target.elements.sheetName.value; if (name) { await addDoc(collection(db, 'expense_sheets'), { name, createdAt: new Date(), status: 'active' }); closeModal(createSheetModal); e.target.reset(); } });
@@ -296,7 +342,6 @@
         const headerStyle = { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "4F81BD" } } };
         const currencyFormat = '"₹"#,##0.00';
 
-        // Summary Sheet
         const summaryData = [
             [{v: `Financial Summary: ${state.currentSheetName}`, s: { font: { bold: true, sz: 16 } }}], [],
             [{v: 'Category', s: headerStyle}, {v: 'Amount', s: headerStyle}],
@@ -309,7 +354,6 @@
         wsSummary['!cols'] = [{wch: 30}, {wch: 20}];
         XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
 
-        // Maintenance Sheet
         const maintHeaders = ['Date', 'Flat No.', 'Owner Name', 'Amount', 'Payment Mode'];
         const maintData = state.collections.sort((a,b)=> new Date(b.date) - new Date(a.date)).map(i => [new Date(i.date + 'T00:00:00').toLocaleDateString('en-GB'), i.flatNo, i.ownerName, i.amount, i.mode]);
         const wsMaint = XLSX.utils.aoa_to_sheet([maintHeaders, ...maintData]);
@@ -318,7 +362,6 @@
         wsMaint['!cols'] = [{wch: 12}, {wch: 12}, {wch: 25}, {wch: 15}, {wch: 15}];
         XLSX.utils.book_append_sheet(wb, wsMaint, 'Maintenance Collection');
 
-        // Expense Sheet
         const expHeaders = ['Date', 'Description', 'Amount'];
         const expData = state.expenses.sort((a,b)=> new Date(b.date) - new Date(a.date)).map(i => [new Date(i.date + 'T00:00:00').toLocaleDateString('en-GB'), i.description, i.amount]);
         const wsExp = XLSX.utils.aoa_to_sheet([expHeaders, ...expData]);
