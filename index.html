@@ -162,7 +162,7 @@
                              <h3 class="text-xl font-semibold mt-8 mb-4">Expense Log</h3>
                             <div class="overflow-x-auto">
                                 <table class="w-full">
-                                    <thead class="bg-slate-50"><tr><th class="p-3 text-left text-xs uppercase">Date</th><th class="p-3 text-left text-xs uppercase">Description</th><th class="p-3 text-left text-xs uppercase">Amount</th></tr></thead>
+                                    <thead class="bg-slate-50"><tr><th class="p-3 text-left text-xs uppercase">Date</th><th class="p-3 text-left text-xs uppercase">Description</th><th class="p-3 text-left text-xs uppercase">Amount</th><th class="p-3 text-center text-xs uppercase">Actions</th></tr></thead>
                                     <tbody id="expense-log-table" class="divide-y"></tbody>
                                 </table>
                                 <p id="no-expenses-message" class="text-center text-slate-500 py-8 hidden">No expenses logged yet.</p>
@@ -174,7 +174,6 @@
         </div>
     </div>
     
-    <!-- Modals and Toast -->
     <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-800 text-white py-3 px-6 rounded-lg shadow-lg z-50"><span id="toast-message"></span></div>
 
 <script type="module">
@@ -252,7 +251,25 @@
     const renderSummary = (openingBalance) => { const totalCollected = state.collections.reduce((s,i) => s + i.amount, 0); const totalExpenses = state.expenses.reduce((s,i) => s + i.amount, 0); const closingBalance = openingBalance + totalCollected - totalExpenses; UI.openingBalance.textContent = formatCurrency(openingBalance); UI.totalCollected.textContent = formatCurrency(totalCollected); UI.totalExpenses.textContent = formatCurrency(totalExpenses); UI.closingBalance.textContent = formatCurrency(closingBalance); const isNeg = closingBalance < 0; UI.balanceCard.className = `p-6 rounded-lg ${isNeg ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`; UI.balanceLabel.className = `font-medium ${isNeg ? 'text-red-600' : 'text-green-600'}`; UI.balanceLabel.textContent = isNeg ? 'Deficit' : 'Closing Balance'; };
     const renderPaymentStatus = () => { UI.paymentStatusTable.innerHTML = ''; const paidFlats = new Set(state.collections.map(c => c.flatNo)); let residentsToDisplay = state.residents; if (state.activeStatusFilter === 'pending') { residentsToDisplay = state.residents.filter(r => (r.status || 'Sold') === 'Sold' && !paidFlats.has(r.flatNo)); } else if (state.activeStatusFilter === 'paid') { residentsToDisplay = state.residents.filter(r => (r.status || 'Sold') === 'Sold' && paidFlats.has(r.flatNo)); } residentsToDisplay.sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(res => { const status = res.status || 'Sold'; const row = UI.paymentStatusTable.insertRow(); let statusHTML; if (status === 'Sold') { const isPaid = paidFlats.has(res.flatNo); const statusClass = isPaid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'; statusHTML = `<span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${isPaid ? 'Paid' : 'Pending'}</span>`; } else { statusHTML = `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">N/A</span>`; } row.innerHTML = `<td class="p-3">${res.flatNo}</td><td class="p-3">${res.ownerName}</td><td class="p-3">${statusHTML}</td>`; }); };
     const renderCollectionLog = () => { UI.collectionLogTable.innerHTML = ''; const collections = state.collections.sort((a,b) => new Date(b.date) - new Date(a.date)); UI.noCollectionsMessage.classList.toggle('hidden', collections.length > 0); collections.forEach(item => { const row = UI.collectionLogTable.insertRow(); row.className = 'hover:bg-slate-50'; row.innerHTML = `<td class="p-3 text-sm">${new Date(item.date + 'T00:00:00').toLocaleDateString('en-GB')}</td><td class="p-3 text-sm">${item.flatNo} - ${item.ownerName}</td><td class="p-3 text-sm font-medium">${formatCurrency(item.amount)}</td><td class="p-3 text-sm">${item.mode}</td>`; }); };
-    const renderExpenseLog = () => { UI.expenseLogTable.innerHTML = ''; const expenses = state.expenses.sort((a,b) => new Date(b.date) - new Date(a.date)); UI.noExpensesMessage.classList.toggle('hidden', expenses.length > 0); expenses.forEach(item => { const row = UI.expenseLogTable.insertRow(); row.className = 'hover:bg-slate-50'; row.innerHTML = `<td class="p-3 text-sm">${new Date(item.date + 'T00:00:00').toLocaleDateString('en-GB')}</td><td class="p-3 text-sm">${item.description}</td><td class="p-3 text-sm font-medium">${formatCurrency(item.amount)}</td>`; }); };
+    
+    // STEP 2 CHANGE: Updated the renderExpenseLog function
+    const renderExpenseLog = () => {
+        UI.expenseLogTable.innerHTML = '';
+        const expenses = state.expenses.sort((a,b) => new Date(b.date) - new Date(a.date));
+        UI.noExpensesMessage.classList.toggle('hidden', expenses.length > 0);
+        expenses.forEach(item => {
+            const row = UI.expenseLogTable.insertRow();
+            row.className = 'hover:bg-slate-50';
+            row.innerHTML = `
+                <td class="p-3 text-sm">${new Date(item.date + 'T00:00:00').toLocaleDateString('en-GB')}</td>
+                <td class="p-3 text-sm">${item.description}</td>
+                <td class="p-3 text-sm font-medium">${formatCurrency(item.amount)}</td>
+                <td class="p-3 text-center">
+                    <button data-id="${item.id}" class="text-red-500 text-sm font-semibold delete-expense-btn">Delete</button>
+                </td>`;
+        });
+    };
+
     const renderMonthlySummary = () => { UI.monthlySummaryGrid.innerHTML = ''; const sortedSummaries = state.monthlySummaries.sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis()); UI.noSummaryMessage.classList.toggle('hidden', sortedSummaries.length > 0); let totalBalance = 0; sortedSummaries.forEach(summary => { const balance = summary.totalCollection - summary.totalExpense; totalBalance += balance; const card = document.createElement('div'); card.className = 'bg-white p-4 rounded-lg shadow'; card.innerHTML = `<h4 class="font-bold text-lg text-slate-800">${summary.monthName}</h4><div class="mt-2 text-sm space-y-1"><p class="flex justify-between"><span>Collection:</span> <span class="font-semibold text-green-600">${formatCurrency(summary.totalCollection)}</span></p><p class="flex justify-between"><span>Expenses:</span> <span class="font-semibold text-red-600">${formatCurrency(summary.totalExpense)}</span></p></div><div class="text-xs text-right mt-3 space-x-3"><button data-id="${summary.id}" class="text-blue-500 hover:underline edit-summary-btn">Edit</button><button data-id="${summary.id}" data-name="${summary.monthName}" class="text-red-500 hover:underline delete-summary-btn">Delete</button></div>`; UI.monthlySummaryGrid.appendChild(card); }); UI.totalSocietyBalance.textContent = formatCurrency(totalBalance); UI.totalSocietyBalance.parentElement.classList.toggle('bg-red-600', totalBalance < 0); UI.totalSocietyBalance.parentElement.classList.toggle('bg-teal-600', totalBalance >= 0); };
     
     // --- CORE LOGIC ---
@@ -282,6 +299,18 @@
     document.querySelector('#detail-view')?.addEventListener('change', e => { if(e.target.id === 'm-flat') { const res = state.residents.find(r => r.flatNo === e.target.value); const nameInput = document.getElementById('m-name'); const amountInput = document.getElementById('m-amount'); if (res) { nameInput.value = res.ownerName; amountInput.value = res.maintAmount; } else { nameInput.value = ''; amountInput.value = ''; } } });
     document.querySelector('#maintenance-form')?.addEventListener('submit', async e => { e.preventDefault(); const flatNo = document.getElementById('m-flat').value; if (state.collections.some(c => c.flatNo === flatNo)) { showToast(`Payment for ${flatNo} already logged.`, true); return; } const data = { date: document.getElementById('m-date').value, flatNo, ownerName: document.getElementById('m-name').value, amount: parseFloat(document.getElementById('m-amount').value), mode: document.getElementById('m-mode').value, sheetId: state.currentSheetId }; if (data.flatNo && data.amount) { await addDoc(collection(db, 'maintenance'), data); e.target.reset(); document.getElementById('m-name').value = ''; document.getElementById('m-amount').value = ''; showToast('Collection added.'); } });
     document.querySelector('#expense-form')?.addEventListener('submit', async e => { e.preventDefault(); const data = { date: document.getElementById('e-date').value, amount: parseFloat(document.getElementById('e-amount').value), description: document.getElementById('e-desc').value, sheetId: state.currentSheetId, }; if (data.description && data.amount) { await addDoc(collection(db, 'expenses'), data); e.target.reset(); showToast('Expense added.'); } });
+    
+    // STEP 3 CHANGE: Added the event listener for the delete button
+    UI.expenseLogTable.addEventListener('click', async e => {
+        if (e.target.matches('.delete-expense-btn')) {
+            const id = e.target.dataset.id;
+            if (confirm('Are you sure you want to delete this expense? This action cannot be undone.')) {
+                await deleteDoc(doc(db, 'expenses', id));
+                showToast('Expense deleted.');
+            }
+        }
+    });
+
     document.querySelector('#detail-tabs')?.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') switchTab(e.target.dataset.tab); });
     const switchTab = (activeTab) => { const tabs = document.querySelector('#detail-tabs'); const content = document.querySelector('#tab-content'); if(!tabs || !content) return; tabs.querySelectorAll('button').forEach(btn => { btn.classList.toggle('tab-active', btn.dataset.tab === activeTab); btn.classList.toggle('text-gray-500', btn.dataset.tab !== activeTab); }); content.querySelectorAll('[id$="-tab"]').forEach(c => c.classList.toggle('hidden', !c.id.startsWith(activeTab))); };
     document.querySelector('#status-filters')?.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { state.activeStatusFilter = e.target.dataset.filter; document.querySelector('#status-filters').querySelectorAll('button').forEach(btn => { btn.classList.toggle('bg-blue-500', btn.dataset.filter === state.activeStatusFilter); btn.classList.toggle('text-white', btn.dataset.filter === state.activeStatusFilter); btn.classList.toggle('bg-gray-200', btn.dataset.filter !== state.activeStatusFilter); }); renderPaymentStatus(); } });
@@ -375,4 +404,3 @@
 </script>
 </body>
 </html>
-
