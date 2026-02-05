@@ -1,0 +1,5 @@
+body { font-family: 'Inter', sans-serif; }
+.hidden { display: none; }
+#toast { transform: translateY(150%); transition: transform 0.3s ease-in-out; }
+#toast.show { transform: translateY(0); }
+.tab-active { border-color: #3b82f6; color: #3b82f6; }
