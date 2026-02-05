@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Society Finance Manager Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -16,8 +16,8 @@
         <div id="auth-container" class="hidden max-w-md mx-auto bg-white rounded-2xl shadow-lg p-8 mt-10">
              <h2 class="text-2xl font-bold text-center">Society Login</h2>
              <form id="loginForm" class="mt-6">
-                 <div class="mb-4"><label for="loginEmail" class="block text-sm font-medium">Email</label><input type="email" id="loginEmail" required class="mt-1 w-full border-slate-300 rounded-md p-2"></div>
-                 <div class="mb-6"><label for="loginPassword" class="block text-sm font-medium">Password</label><input type="password" id="loginPassword" required class="mt-1 w-full border-slate-300 rounded-md p-2"></div>
+                 <div class="mb-4"><label class="block text-sm font-medium">Email</label><input type="email" id="loginEmail" required class="mt-1 w-full border-slate-300 rounded-md p-2"></div>
+                 <div class="mb-6"><label class="block text-sm font-medium">Password</label><input type="password" id="loginPassword" required class="mt-1 w-full border-slate-300 rounded-md p-2"></div>
                  <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md">Login</button>
              </form>
              <p id="authError" class="text-red-500 text-sm mt-4 text-center"></p>
@@ -26,10 +26,10 @@
         <div id="content-container" class="hidden">
             <header class="mb-8 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
-                    <h1 id="header-title" class="text-3xl md:text-4xl font-bold text-slate-900">Finance Dashboard</h1>
+                    <h1 id="header-title" class="text-3xl font-bold text-slate-900">Finance Dashboard</h1>
                     <p class="text-slate-500 mt-2" id="welcomeMessage"></p>
                 </div>
-                <button id="logoutButton" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-md shadow-md w-full sm:w-auto">Logout</button>
+                <button id="logoutButton" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-md shadow-md">Logout</button>
             </header>
 
             <div id="dashboard-view">
@@ -47,35 +47,30 @@
                     <button id="open-create-sheet-modal" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-md">+ Create New Sheet</button>
                 </div>
                 <div id="sheets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-                <p id="no-sheets-message" class="text-center text-slate-500 py-16 hidden">No finance sheets yet.</p>
-
+                
                 <div class="mt-12">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-2xl font-semibold text-slate-800">High-Level Monthly Summary</h2>
-                        <button id="open-add-month-modal" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow-md hover:bg-green-700">+ Add Month Summary</button>
+                        <button id="open-add-month-modal" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow-md">+ Add Month Summary</button>
                     </div>
                     <div id="monthly-summary-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"></div>
-                    <p id="no-summary-message" class="text-center text-slate-500 py-16 hidden">No monthly summaries added yet.</p>
                 </div>
             </div>
-            
+
             <div id="residents-view" class="hidden">
                  <div class="mb-6"><button id="back-to-dashboard-from-residents" class="text-blue-600 font-semibold flex items-center">&larr; Back to Dashboard</button></div>
-                 <div class="bg-white p-6 rounded-lg shadow-md">
-                     <h2 class="text-2xl font-semibold mb-4">Manage Residents</h2>
-                     <form id="resident-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 items-end mb-6">
-                         <div class="md:col-span-1"><label for="r-flat" class="text-sm">Flat No.</label><input type="text" id="r-flat" placeholder="A-101" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
-                         <div class="md:col-span-2"><label for="r-name" class="text-sm">Owner Name</label><input type="text" id="r-name" placeholder="Mr. Sharma" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
-                         <div class="md:col-span-1"><label for="r-amount" class="text-sm">Maint. Amount</label><input type="number" id="r-amount" placeholder="2500" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
-                         <div class="md:col-span-1"><label for="r-status" class="text-sm">Status</label><select id="r-status" class="mt-1 w-full p-2 border-slate-300 rounded"><option value="Sold">Sold</option><option value="Unsold">Unsold</option><option value="Exempt">Exempt</option></select></div>
-                         <div class="flex gap-2 md:col-span-1">
-                             <button type="submit" id="resident-submit-btn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md">Add</button>
-                             <button type="button" id="resident-cancel-btn" class="w-full bg-slate-200 py-2 px-4 rounded-md hidden">Cancel</button>
-                         </div>
+                 <div class="bg-white p-6 rounded-lg shadow-md border border-slate-100">
+                     <h2 class="text-2xl font-semibold mb-6">Manage Residents</h2>
+                     <form id="resident-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 items-end mb-8">
+                         <div><label class="block text-xs font-medium text-slate-500 mb-1">Flat No.</label><input type="text" id="r-flat" placeholder="A-101" required class="w-full border-slate-300 rounded p-2"></div>
+                         <div class="md:col-span-2"><label class="block text-xs font-medium text-slate-500 mb-1">Owner Name</label><input type="text" id="r-name" placeholder="Mr. Sharma" required class="w-full border-slate-300 rounded p-2"></div>
+                         <div><label class="block text-xs font-medium text-slate-500 mb-1">Maint. Amount</label><input type="number" id="r-amount" placeholder="2500" required class="w-full border-slate-300 rounded p-2"></div>
+                         <div><label class="block text-xs font-medium text-slate-500 mb-1">Status</label><select id="r-status" class="w-full border-slate-300 rounded p-2"><option value="Sold">Sold</option><option value="Unsold">Unsold</option></select></div>
+                         <div><button type="submit" id="resident-submit-btn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md">Add</button></div>
                      </form>
                      <div class="overflow-x-auto"><table class="w-full">
-                         <thead class="bg-slate-50"><tr>
-                            <th class="p-3 text-left text-xs uppercase">Flat No.</th> <th class="p-3 text-left text-xs uppercase">Owner Name</th> <th class="p-3 text-left text-xs uppercase">Amount</th> <th class="p-3 text-left text-xs uppercase">Status</th> <th class="p-3 text-center text-xs uppercase">Actions</th>
+                         <thead class="bg-slate-50 border-b"><tr>
+                            <th class="p-3 text-left text-xs font-bold uppercase tracking-wider">Flat No.</th> <th class="p-3 text-left text-xs font-bold uppercase tracking-wider">Owner Name</th> <th class="p-3 text-left text-xs font-bold uppercase tracking-wider">Amount</th> <th class="p-3 text-left text-xs font-bold uppercase tracking-wider">Status</th> <th class="p-3 text-center text-xs font-bold uppercase tracking-wider">Actions</th>
                          </tr></thead>
                          <tbody id="residents-table-body" class="divide-y"></tbody>
                      </table></div>
@@ -85,27 +80,22 @@
             <div id="detail-view" class="hidden">
                  <div class="mb-6 flex justify-between items-center">
                     <button id="back-to-dashboard-from-detail" class="text-blue-600 font-semibold flex items-center">&larr; Back to Dashboard</button>
-                    <button id="export-excel-btn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow-md hover:bg-green-700">Export to Excel</button>
+                    <button id="export-excel-btn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow-md">Export to Excel</button>
                 </div>
-                
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 text-center sm:text-left">
                     <div class="bg-purple-100 p-6 rounded-lg"><h3 class="font-medium text-purple-600">Opening Balance</h3><p id="opening-balance" class="text-3xl font-bold mt-2">₹0.00</p></div>
-                    <div class="bg-blue-100 p-6 rounded-lg"><h3 class="font-medium text-blue-600">Collected (This Month)</h3><p id="total-collected" class="text-3xl font-bold mt-2">₹0.00</p></div>
-                    <div class="bg-red-100 p-6 rounded-lg"><h3 class="font-medium text-red-600">Expenses (This Month)</h3><p id="total-expenses" class="text-3xl font-bold mt-2">₹0.00</p></div>
-                    <div id="balance-card" class="p-6 rounded-lg"><h3 id="balance-label" class="font-medium">Closing Balance</h3><p id="closing-balance" class="text-3xl font-bold mt-2">₹0.00</p></div>
+                    <div class="bg-blue-100 p-6 rounded-lg"><h3 class="font-medium text-blue-600">Collected</h3><p id="total-collected" class="text-3xl font-bold mt-2">₹0.00</p></div>
+                    <div class="bg-red-100 p-6 rounded-lg"><h3 class="font-medium text-red-600">Expenses</h3><p id="total-expenses" class="text-3xl font-bold mt-2">₹0.00</p></div>
+                    <div id="balance-card" class="bg-green-100 p-6 rounded-lg"><h3 id="balance-label" class="font-medium text-green-600">Closing Balance</h3><p id="closing-balance" class="text-3xl font-bold mt-2">₹0.00</p></div>
                 </div>
-
-                <div class="border-b border-gray-200 mb-6">
-                    <nav class="-mb-px flex space-x-6" id="detail-tabs">
-                        <button data-tab="status" class="py-4 px-1 border-b-2 font-medium text-sm tab-active">Payment Status</button>
-                        <button data-tab="collection" class="py-4 px-1 border-b-2 font-medium text-sm text-gray-500">Maintenance Collection</button>
-                        <button data-tab="expenses" class="py-4 px-1 border-b-2 font-medium text-sm text-gray-500">Expenses</button>
-                    </nav>
-                </div>
-
+                <nav class="flex space-x-6 border-b mb-6" id="detail-tabs">
+                    <button data-tab="status" class="py-4 px-1 border-b-2 font-medium text-sm tab-active">Payment Status</button>
+                    <button data-tab="collection" class="py-4 px-1 border-b-2 font-medium text-sm text-gray-500">Maintenance Collection</button>
+                    <button data-tab="expenses" class="py-4 px-1 border-b-2 font-medium text-sm text-gray-500">Expenses</button>
+                </nav>
                 <div id="tab-content">
                     <div id="status-tab">
-                         <div class="bg-white p-6 rounded-lg shadow-md">
+                         <div class="bg-white p-6 rounded-lg shadow-sm border">
                              <div class="flex justify-between items-center mb-4">
                                 <h2 class="text-2xl font-semibold">Payment Status</h2>
                                 <div class="flex gap-2" id="status-filters">
@@ -114,61 +104,34 @@
                                     <button data-filter="paid" class="bg-gray-200 px-3 py-1 text-sm rounded">Paid</button>
                                 </div>
                              </div>
-                             <div class="overflow-x-auto"><table class="w-full">
-                                 <thead class="bg-slate-50"><tr>
-                                     <th class="p-3 text-left text-xs uppercase">Flat No.</th><th class="p-3 text-left text-xs uppercase">Owner Name</th><th class="p-3 text-left text-xs uppercase">Status</th>
-                                 </tr></thead>
-                                 <tbody id="payment-status-table" class="divide-y"></tbody>
-                             </table></div>
+                             <table class="w-full"><tbody id="payment-status-table" class="divide-y"></tbody></table>
                          </div>
                     </div>
                     <div id="collection-tab" class="hidden">
-                        <div class="bg-white p-6 rounded-lg shadow-md">
-                            <h2 class="text-2xl font-semibold mb-4">Log Maintenance Collection</h2>
-                            <form id="maintenance-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mb-6">
-                                <div><label class="text-sm">Date</label><input type="date" id="m-date" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
-                                <div><label class="text-sm">Flat No.</label><select id="m-flat" required class="mt-1 w-full p-2 border-slate-300 rounded"></select></div>
-                                <div><label class="text-sm">Owner Name</label><input type="text" id="m-name" readonly class="mt-1 w-full p-2 bg-slate-100 border-slate-300 rounded"></div>
-                                <div><label class="text-sm">Amount</label><input type="number" id="m-amount" readonly class="mt-1 w-full p-2 bg-slate-100 border-slate-300 rounded"></div>
-                                <div class="sm:col-span-2"><label class="text-sm">Payment Mode</label><select id="m-mode" class="mt-1 w-full p-2 border-slate-300 rounded"><option>UPI</option><option>Bank Transfer</option><option>Cash</option><option>Cheque</option></select></div>
-                                <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md sm:col-span-2">Add Collection</button>
-                            </form>
-                             <h3 class="text-xl font-semibold mt-8 mb-4">Collection Log</h3>
-                            <div class="overflow-x-auto">
-                                <table class="w-full">
-                                    <thead class="bg-slate-50"><tr><th class="p-3 text-left text-xs uppercase">Date</th><th class="p-3 text-left text-xs uppercase">Flat / Resident</th><th class="p-3 text-left text-xs uppercase">Amount</th><th class="p-3 text-left text-xs uppercase">Mode</th></tr></thead>
-                                    <tbody id="collection-log-table" class="divide-y"></tbody>
-                                </table>
-                                <p id="no-collections-message" class="text-center text-slate-500 py-8 hidden">No collections logged yet.</p>
-                            </div>
-                        </div>
+                        <form id="maintenance-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-6 rounded-lg shadow-sm border mb-6">
+                            <input type="date" id="m-date" required class="p-2 border rounded">
+                            <select id="m-flat" required class="p-2 border rounded"></select>
+                            <input type="text" id="m-name" readonly placeholder="Owner" class="p-2 border rounded bg-slate-50">
+                            <input type="number" id="m-amount" readonly placeholder="Amount" class="p-2 border rounded bg-slate-50">
+                            <select id="m-mode" class="p-2 border rounded"><option>UPI</option><option>Cash</option></select>
+                            <button type="submit" class="bg-blue-600 text-white py-2 rounded">Log Collection</button>
+                        </form>
+                        <table class="w-full bg-white rounded shadow-sm"><tbody id="collection-log-table" class="divide-y"></tbody></table>
                     </div>
                     <div id="expenses-tab" class="hidden">
-                        <div class="bg-white p-6 rounded-lg shadow-md">
-                            <h2 class="text-2xl font-semibold mb-4">Log Expense</h2>
-                            <form id="expense-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mb-6">
-                                <div><label class="text-sm">Date</label><input type="date" id="e-date" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
-                                <div><label class="text-sm">Amount</label><input type="number" id="e-amount" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
-                                <div class="sm:col-span-2"><label class="text-sm">Description</label><input type="text" id="e-desc" required class="mt-1 w-full p-2 border-slate-300 rounded"></div>
-                                <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md sm:col-span-2">Add Expense</button>
-                            </form>
-                             <h3 class="text-xl font-semibold mt-8 mb-4">Expense Log</h3>
-                            <div class="overflow-x-auto">
-                                <table class="w-full">
-                                    <thead class="bg-slate-50"><tr><th class="p-3 text-left text-xs uppercase">Date</th><th class="p-3 text-left text-xs uppercase">Description</th><th class="p-3 text-left text-xs uppercase">Amount</th><th class="p-3 text-center text-xs uppercase">Actions</th></tr></thead>
-                                    <tbody id="expense-log-table" class="divide-y"></tbody>
-                                </table>
-                                <p id="no-expenses-message" class="text-center text-slate-500 py-8 hidden">No expenses logged yet.</p>
-                            </div>
-                        </div>
+                        <form id="expense-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-6 rounded-lg shadow-sm border mb-6">
+                            <input type="date" id="e-date" required class="p-2 border rounded">
+                            <input type="number" id="e-amount" required placeholder="Amount" class="p-2 border rounded">
+                            <input type="text" id="e-desc" required placeholder="Description" class="p-2 border rounded col-span-1 sm:col-span-2">
+                            <button type="submit" class="bg-blue-600 text-white py-2 rounded col-span-1 sm:col-span-2">Add Expense</button>
+                        </form>
+                        <table class="w-full bg-white rounded shadow-sm"><tbody id="expense-log-table" class="divide-y"></tbody></table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-800 text-white py-3 px-6 rounded-lg shadow-lg z-50"><span id="toast-message"></span></div>
-
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-800 text-white py-3 px-6 rounded-lg shadow-lg z-50 transition-transform translate-y-[200%]"><span id="toast-message"></span></div>
     <script type="module" src="js/app.js"></script>
 </body>
 </html>

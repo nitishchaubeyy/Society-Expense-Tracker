@@ -1,193 +1,147 @@
 // js/ui.js
-export const formatCurrency = (amount) => `₹${Number(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const formatCurrency = (a) => `₹${Number(a || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
-export const showToast = (message, isError = false) => {
-    const toast = document.getElementById('toast');
-    const msg = document.getElementById('toast-message');
-    msg.textContent = message;
-    toast.className = `fixed bottom-5 left-1/2 -translate-x-1/2 py-3 px-6 rounded-lg shadow-lg z-50 text-white ${isError ? 'bg-red-600' : 'bg-slate-800'}`;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3000);
+export const showToast = (m, isErr = false) => {
+    const t = document.getElementById('toast');
+    document.getElementById('toast-message').textContent = m;
+    t.className = `fixed bottom-5 left-1/2 -translate-x-1/2 py-3 px-6 rounded shadow-lg z-50 text-white transition-transform ${isErr ? 'bg-red-600' : 'bg-slate-800'}`;
+    t.classList.remove('translate-y-[200%]');
+    setTimeout(() => t.classList.add('translate-y-[200%]'), 3000);
 };
 
-export const switchTab = (activeTab) => {
-    document.querySelectorAll('#detail-tabs button').forEach(btn => {
-        const active = btn.dataset.tab === activeTab;
-        btn.classList.toggle('tab-active', active);
-        btn.classList.toggle('text-gray-500', !active);
+export const switchTab = (tab) => {
+    document.querySelectorAll('#detail-tabs button').forEach(b => {
+        const active = b.dataset.tab === tab;
+        b.classList.toggle('tab-active', active); b.classList.toggle('text-gray-500', !active);
     });
-    document.querySelectorAll('#tab-content > div').forEach(div => div.classList.toggle('hidden', !div.id.startsWith(activeTab)));
+    document.querySelectorAll('#tab-content > div').forEach(d => d.classList.toggle('hidden', !d.id.startsWith(tab)));
 };
 
 export const createModal = (id, title, content) => {
-    let modal = document.getElementById(id);
-    if (modal) modal.remove();
-    modal = document.createElement('div');
-    modal.id = id;
-    modal.className = 'hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
-    modal.innerHTML = `<div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-        <h3 class="text-xl font-semibold mb-4">${title}</h3>${content}</div>`;
-    document.getElementById('app').appendChild(modal);
-    return modal;
+    let m = document.getElementById(id); if (m) m.remove();
+    m = document.createElement('div');
+    m.id = id; m.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
+    m.innerHTML = `<div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md relative"><button class="absolute top-2 right-4 text-2xl text-gray-400" data-close>&times;</button><h3 class="text-xl font-semibold mb-4">${title}</h3>${content}</div>`;
+    document.getElementById('app').appendChild(m); return m;
 };
 
 // --- RENDERERS ---
-export const renderDashboardSheets = (sheets) => {
-    const grid = document.getElementById('sheets-grid');
-    const active = sheets.filter(s => s.status === 'active').sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+export const renderDashboardSheets = (s) => {
+    const grid = document.getElementById('sheets-grid'); if(!grid) return;
     grid.innerHTML = '';
-    document.getElementById('no-sheets-message').classList.toggle('hidden', active.length > 0);
-    active.forEach(s => {
-        const div = document.createElement('div');
-        div.className = "bg-white p-6 rounded-lg shadow hover:shadow-lg flex flex-col justify-between";
-        div.innerHTML = `<div class="cursor-pointer flex-grow sheet-card" data-id="${s.id}" data-name="${s.name}" data-date="${s.createdAt.toMillis()}">
-            <h3 class="text-xl font-semibold">${s.name}</h3><p class="text-sm text-slate-400">${s.createdAt.toDate().toLocaleDateString()}</p>
-            </div><div class="text-right mt-4"><button data-id="${s.id}" data-name="${s.name}" class="text-sm text-red-500 delete-sheet-btn">Delete</button></div>`;
-        grid.appendChild(div);
+    s.filter(x => x.status === 'active').forEach(sheet => {
+        const d = document.createElement('div'); d.className = "bg-white p-6 rounded shadow cursor-pointer sheet-card";
+        d.dataset.id = sheet.id; d.dataset.name = sheet.name; d.dataset.date = sheet.createdAt.toMillis();
+        d.innerHTML = `<h3 class="font-bold text-lg">${sheet.name}</h3><p class="text-xs text-gray-400">${sheet.createdAt.toDate().toLocaleDateString()}</p>
+        <button data-id="${sheet.id}" class="mt-4 text-red-500 text-xs delete-sheet-btn font-bold">DELETE</button>`;
+        grid.appendChild(d);
     });
 };
 
-export const renderRecycleBin = (sheets) => {
-    const deleted = sheets.filter(s => s.status === 'deleted');
-    const container = document.getElementById('sheet-recycle-bin-content');
-    if (!container) return;
-    container.innerHTML = '';
-    if (deleted.length === 0) {
-        container.innerHTML = '<p class="text-center text-slate-500 py-8">Recycle bin is empty.</p>';
-        return;
-    }
-    deleted.forEach(s => {
-        const div = document.createElement('div');
-        div.className = "flex justify-between items-center p-3 border-b";
-        div.innerHTML = `<p>${s.name}</p><div>
-            <button data-id="${s.id}" class="text-blue-600 font-semibold mr-4 restore-sheet-btn">Restore</button>
-            <button data-id="${s.id}" class="text-red-600 font-semibold perm-delete-sheet-btn">Delete Forever</button>
-        </div>`;
-        container.appendChild(div);
-    });
-};
-
-export const renderMonthlySummaries = (summaries) => {
-    const grid = document.getElementById('monthly-summary-grid');
+export const renderMonthlySummaries = (s) => {
+    const grid = document.getElementById('monthly-summary-grid'); if(!grid) return;
     grid.innerHTML = '';
     let total = 0;
-    summaries.sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis()).forEach(s => {
-        total += (s.totalCollection - s.totalExpense);
-        const div = document.createElement('div');
-        div.className = 'bg-white p-4 rounded-lg shadow';
-        div.innerHTML = `<h4 class="font-bold text-lg">${s.monthName}</h4>
-            <div class="mt-2 text-sm">
-                <p class="flex justify-between">Col: <span class="text-green-600 font-semibold">${formatCurrency(s.totalCollection)}</span></p>
-                <p class="flex justify-between">Exp: <span class="text-red-600 font-semibold">${formatCurrency(s.totalExpense)}</span></p>
-            </div>
-            <div class="text-xs text-right mt-3 space-x-2">
-                <button data-id="${s.id}" class="text-blue-500 edit-summary-btn">Edit</button>
-                <button data-id="${s.id}" data-name="${s.monthName}" class="text-red-500 delete-summary-btn">Delete</button>
-            </div>`;
-        grid.appendChild(div);
+    s.sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis()).forEach(x => {
+        total += (x.totalCollection - x.totalExpense);
+        const d = document.createElement('div'); d.className = "bg-white p-4 rounded shadow border";
+        d.innerHTML = `<h4 class="font-bold text-lg">${x.monthName}</h4>
+        <p class="text-green-600 text-sm">Col: ${formatCurrency(x.totalCollection)}</p>
+        <p class="text-red-600 text-sm">Exp: ${formatCurrency(x.totalExpense)}</p>
+        <div class="flex gap-4 mt-4 pt-2 border-t"><button data-id="${x.id}" class="text-blue-600 text-xs font-bold edit-summary-btn">EDIT</button>
+        <button data-id="${x.id}" class="text-red-500 text-xs font-bold delete-summary-btn">DELETE</button></div>`;
+        grid.appendChild(d);
     });
-    document.getElementById('no-summary-message').classList.toggle('hidden', summaries.length > 0);
-    const balEl = document.getElementById('total-society-balance');
-    balEl.textContent = formatCurrency(total);
-    balEl.parentElement.className = `p-6 rounded-lg shadow-lg text-white ${total < 0 ? 'bg-red-600' : 'bg-teal-600'}`;
+    document.getElementById('total-society-balance').textContent = formatCurrency(total);
 };
 
-export const renderResidents = (residents) => {
-    const body = document.getElementById('residents-table-body');
+export const renderResidentsTable = (res) => {
+    const body = document.getElementById('residents-table-body'); if(!body) return;
     body.innerHTML = '';
-    residents.sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(r => {
+    res.sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(r => {
         const row = body.insertRow();
-        row.innerHTML = `<td class="p-3">${r.flatNo}</td><td class="p-3">${r.ownerName}</td><td class="p-3">${formatCurrency(r.maintAmount)}</td>
-        <td class="p-3">${r.status || 'Sold'}</td><td class="p-3 text-center">
-        <button data-id="${r.id}" class="text-blue-500 edit-resident-btn">Edit</button>
-        <button data-id="${r.id}" class="text-red-500 ml-3 delete-resident-btn">Delete</button></td>`;
+        row.innerHTML = `<td class="p-3 text-sm">${r.flatNo}</td><td class="p-3 font-medium">${r.ownerName}</td>
+        <td class="p-3 text-sm">${formatCurrency(r.maintAmount)}</td><td class="p-3 text-sm">${r.status || 'Sold'}</td>
+        <td class="p-3 text-right"><button data-id="${r.id}" class="text-blue-600 edit-resident-btn text-xs font-bold mr-2">EDIT</button>
+        <button data-id="${r.id}" class="text-red-500 delete-resident-btn text-xs font-bold">DELETE</button></td>`;
     });
 };
 
-export const renderExpenses = (expenses) => {
-    const body = document.getElementById('expense-log-table');
-    body.innerHTML = '';
-    expenses.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(e => {
-        const row = body.insertRow();
-        row.innerHTML = `<td class="p-3 text-sm">${new Date(e.date + 'T00:00:00').toLocaleDateString('en-GB')}</td>
-        <td class="p-3 text-sm">${e.description}</td><td class="p-3 text-sm font-medium">${formatCurrency(e.amount)}</td>
-        <td class="p-3 text-center"><button data-id="${e.id}" class="text-red-500 delete-expense-btn">Delete</button></td>`;
+export const renderRecycleBin = (s) => {
+    const b = document.getElementById('sheet-recycle-bin-content'); if(!b) return;
+    b.innerHTML = '';
+    s.filter(x => x.status === 'deleted').forEach(x => {
+        const d = document.createElement('div'); d.className = "flex justify-between p-3 border-b items-center";
+        d.innerHTML = `<span>${x.name}</span><button data-id="${x.id}" class="text-blue-600 font-bold text-xs restore-sheet-btn">RESTORE</button>`;
+        b.appendChild(d);
     });
-    document.getElementById('no-expenses-message').classList.toggle('hidden', expenses.length > 0);
 };
 
-export const renderCollections = (collections) => {
-    const body = document.getElementById('collection-log-table');
+export const renderStatus = (res, coll, filter) => {
+    const body = document.getElementById('payment-status-table'); if(!body) return;
     body.innerHTML = '';
-    collections.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(c => {
-        const row = body.insertRow();
-        row.innerHTML = `<td class="p-3 text-sm">${new Date(c.date + 'T00:00:00').toLocaleDateString('en-GB')}</td>
-        <td class="p-3 text-sm">${c.flatNo} - ${c.ownerName}</td><td class="p-3 text-sm font-medium">${formatCurrency(c.amount)}</td><td class="p-3 text-sm">${c.mode}</td>`;
-    });
-    document.getElementById('no-collections-message').classList.toggle('hidden', collections.length > 0);
-};
-
-export const renderStatus = (residents, collections, filter) => {
-    const body = document.getElementById('payment-status-table');
-    const paidSet = new Set(collections.map(c => c.flatNo));
-    body.innerHTML = '';
-    residents.filter(r => {
-        const paid = paidSet.has(r.flatNo);
-        if (filter === 'pending') return (r.status || 'Sold') === 'Sold' && !paid;
-        if (filter === 'paid') return (r.status || 'Sold') === 'Sold' && paid;
+    const paidSet = new Set(coll.map(c => c.flatNo.toString().trim()));
+    res.filter(r => {
+        const paid = paidSet.has(r.flatNo.toString().trim());
+        if (filter === 'pending') return !paid;
+        if (filter === 'paid') return paid;
         return true;
-    }).sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(r => {
-        const paid = paidSet.has(r.flatNo);
+    }).forEach(r => {
+        const paid = paidSet.has(r.flatNo.toString().trim());
         const row = body.insertRow();
-        const statusHTML = (r.status || 'Sold') === 'Sold' 
-            ? `<span class="px-2 py-1 text-xs font-semibold rounded-full ${paid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${paid ? 'Paid' : 'Pending'}</span>`
-            : `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">N/A</span>`;
-        row.innerHTML = `<td class="p-3">${r.flatNo}</td><td class="p-3">${r.ownerName}</td><td class="p-3">${statusHTML}</td>`;
+        row.innerHTML = `<td class="p-3 text-sm">${r.flatNo}</td><td class="p-3 font-medium text-sm">${r.ownerName}</td>
+        <td class="p-3"><span class="px-2 py-1 rounded text-white text-[10px] font-bold" style="background-color:${paid ? '#228B22' : '#FF0000'}">${paid ? 'Paid' : 'Pending'}</span></td>`;
     });
 };
 
-// js/ui.js
+export const renderExpenses = (e) => {
+    const b = document.getElementById('expense-log-table'); if(!b) return;
+    b.innerHTML = '';
+    e.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(x => {
+        const r = b.insertRow();
+        r.innerHTML = `<td class="p-3 text-xs">${x.date}</td><td class="p-3 text-xs">${x.description}</td><td class="p-3 text-xs font-bold">${formatCurrency(x.amount)}</td>
+        <td class="p-3 text-right"><button data-id="${x.id}" class="text-red-500 font-bold text-[10px] delete-expense-btn">DELETE</button></td>`;
+    });
+};
 
-export const exportToExcel = (sheetName, opening, collections, expenses) => {
-    const totalCollected = collections.reduce((s, i) => s + i.amount, 0);
-    const totalExpenses = expenses.reduce((s, i) => s + i.amount, 0);
-    const closing = opening + totalCollected - totalExpenses;
-    
+export const renderCollections = (c) => {
+    const b = document.getElementById('collection-log-table'); if(!b) return;
+    b.innerHTML = '';
+    c.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(x => {
+        const r = b.insertRow();
+        r.innerHTML = `<td class="p-3 text-xs">${x.date}</td><td class="p-3 text-xs">${x.flatNo} - ${x.ownerName}</td><td class="p-3 text-xs font-bold text-green-600">${formatCurrency(x.amount)}</td><td class="p-3 text-[10px] text-gray-400 uppercase">${x.mode}</td>`;
+    });
+};
+
+// --- MASTER EXCEL ---
+export const exportToExcel = (sheetName, residents, collections, expenses) => {
     const wb = XLSX.utils.book_new();
-    const currencyFormat = '"₹"#,##0.00';
-    const headerStyle = { font: { bold: true } };
+    const ws = {}; const paidMap = new Map(collections.map(c => [c.flatNo.toString().trim(), c]));
+    const sPaid = { fill: { fgColor: { rgb: "228B22" } }, font: { color: { rgb: "FFFFFF" } }, border: { top: {style: "thin"}, bottom: {style: "thin"} } };
+    const sFloor = { fill: { fgColor: { rgb: "FFFF00" } }, font: { bold: true }, alignment: { horizontal: "center" }, border: { top: {style: "thin"}, bottom: {style: "thin"} } };
+    const sBlue = { fill: { fgColor: { rgb: "2F75B5" } }, font: { color: { rgb: "FFFFFF" }, bold: true }, border: { top: {style: "thin"}, bottom: {style: "thin"} } };
+    const sRed = { fill: { fgColor: { rgb: "FF0000" } }, font: { color: { rgb: "FFFFFF" } }, border: { top: {style: "thin"}, bottom: {style: "thin"} } };
+    const sBorder = { border: { top: {style: "thin"}, bottom: {style: "thin"}, left: {style: "thin"}, right: {style: "thin"} } };
 
-    // 1. Summary Sheet
-    const summaryData = [
-        [`Financial Summary: ${sheetName}`],
-        [],
-        ['Category', 'Amount'],
-        ['Opening Balance', opening],
-        ['Total Collected', totalCollected],
-        ['Total Expenses', totalExpenses],
-        ['Closing Balance', closing]
-    ];
-    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+    const floors = {};
+    residents.forEach(r => { const f = r.flatNo.replace(/\D/g, '').substring(0,1) || "0"; if(!floors[f]) floors[f] = []; floors[f].push(r); });
 
-    // 2. Collections Sheet
-    const maintHeaders = ['Date', 'Flat No.', 'Owner Name', 'Amount', 'Mode'];
-    const maintData = collections.map(i => [
-        new Date(i.date + 'T00:00:00').toLocaleDateString('en-GB'), 
-        i.flatNo, i.ownerName, i.amount, i.mode
-    ]);
-    const wsMaint = XLSX.utils.aoa_to_sheet([maintHeaders, ...maintData]);
-    XLSX.utils.book_append_sheet(wb, wsMaint, 'Collections');
-
-    // 3. Expenses Sheet
-    const expHeaders = ['Date', 'Description', 'Amount'];
-    const expData = expenses.map(i => [
-        new Date(i.date + 'T00:00:00').toLocaleDateString('en-GB'), 
-        i.description, i.amount
-    ]);
-    const wsExp = XLSX.utils.aoa_to_sheet([expHeaders, ...expData]);
-    XLSX.utils.book_append_sheet(wb, wsExp, 'Expenses');
-
-    // Download
-    XLSX.writeFile(wb, `${sheetName.replace(/\s+/g, '_')}_Report.xlsx`);
+    ws['!merges'] = [];
+    Object.keys(floors).sort().forEach((fKey, index) => {
+        const col = (index % 4) * 5; const rowStart = Math.floor(index / 4) * 15;
+        ws[XLSX.utils.encode_cell({r:rowStart, c:col})] = {v: `Floor ${fKey}`, s: sFloor};
+        ws['!merges'].push({s:{r:rowStart, c:col}, e:{r:rowStart, c:col+3}});
+        ["Room", "Owner", "Amount Paid", "Status"].forEach((h, i) => ws[XLSX.utils.encode_cell({r:rowStart+1, c:col+i})] = {v: h, s: sBlue});
+        floors[fKey].forEach((res, rIdx) => {
+            const r = rowStart + 2 + rIdx; const pay = paidMap.get(res.flatNo.toString().trim());
+            ws[XLSX.utils.encode_cell({r, c: col})] = {v: res.flatNo, s: sBorder};
+            ws[XLSX.utils.encode_cell({r, c: col+1})] = {v: res.ownerName, s: sBorder};
+            const style = pay ? sPaid : sRed;
+            ws[XLSX.utils.encode_cell({r, c: col+2})] = {v: pay ? pay.amount : 0, s: style};
+            ws[XLSX.utils.encode_cell({r, c: col+3})] = {v: pay ? "Paid" : "Pending", s: style};
+        });
+    });
+    ws['!ref'] = "A1:Z100"; ws['!cols'] = Array(26).fill({wch: 12});
+    XLSX.utils.book_append_sheet(wb, ws, "Maintenance");
+    XLSX.writeFile(wb, `${sheetName}_Report.xlsx`);
 };
