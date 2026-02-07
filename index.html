@@ -14,18 +14,20 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { darkMode: 'class' }</script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-200">
     <div id="app" class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        <div id="loading" class="text-center py-10"><p class="text-slate-500">Initializing Digital Society Manager...</p></div>
+        <div id="loading" class="text-center py-10"><p class="text-slate-500 font-medium">Loading Society Data...</p></div>
 
-        <div id="auth-container" class="hidden max-w-md mx-auto bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8 mt-10">
-             <h2 class="text-2xl font-bold text-center">Society Login</h2>
+        <div id="auth-container" class="hidden max-w-md mx-auto bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8 mt-10 border dark:border-slate-700">
+             <h2 class="text-2xl font-bold text-center">Admin Login</h2>
              <form id="loginForm" class="mt-6">
-                 <div class="mb-4"><label class="block text-sm font-medium">Email</label><input type="email" id="loginEmail" required class="mt-1 w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-2"></div>
-                 <div class="mb-6"><label class="block text-sm font-medium">Password</label><input type="password" id="loginPassword" required class="mt-1 w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded p-2"></div>
+                 <div class="mb-4"><label class="block text-sm font-medium">Email</label><input type="email" id="loginEmail" required class="mt-1 w-full border-slate-300 dark:bg-slate-700 dark:border-slate-600 rounded p-2"></div>
+                 <div class="mb-6"><label class="block text-sm font-medium">Password</label><input type="password" id="loginPassword" required class="mt-1 w-full border-slate-300 dark:bg-slate-700 dark:border-slate-600 rounded p-2"></div>
                  <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md">Login</button>
              </form>
              <p id="authError" class="text-red-500 text-sm mt-4 text-center"></p>
@@ -46,94 +48,89 @@
             </header>
 
             <div id="dashboard-view">
-                <div id="total-balance-card" class="bg-teal-600 text-white p-6 rounded-lg shadow-lg mb-8">
-                    <h3 class="font-medium text-teal-100">Total Society Balance (from Summaries)</h3>
+                <div class="bg-teal-600 text-white p-6 rounded-lg shadow-lg mb-8">
+                    <h3 class="font-medium text-teal-100">Total Society Balance (from monthly summary)</h3>
                     <p id="total-society-balance" class="text-4xl font-bold mt-2">₹0.00</p>
                 </div>
-
                 <div class="flex flex-col sm:flex-row justify-end gap-3 mb-6">
                     <button id="manage-residents-btn" class="bg-indigo-600 text-white py-2 px-4 rounded-md font-semibold">Manage Residents</button>
                     <button id="open-sheet-recycle-bin-modal" class="bg-slate-500 text-white py-2 px-4 rounded-md font-semibold">Recycle Bin</button>
-                    <button id="open-create-sheet-modal" class="bg-blue-600 text-white py-2 px-4 rounded-md font-semibold">+ Create New Sheet</button>
+                    <button id="open-create-sheet-modal" class="bg-blue-600 text-white py-2 px-4 rounded-md font-semibold">+ New Sheet</button>
                 </div>
-                
-                <h2 class="text-xl font-bold mb-4">Detailed Finance Sheets</h2>
-                <div id="sheets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"></div>
-                
+                <div id="sheets-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"></div>
                 <div class="flex justify-between items-center mb-4 pt-6 border-t dark:border-slate-700">
                     <h2 class="text-xl font-bold">Monthly Summaries</h2>
-                    <button id="open-add-month-modal" class="bg-green-600 text-white py-2 px-4 rounded-md text-sm font-bold">+ ADD SUMMARY</button>
+                    <button id="open-add-month-modal" class="bg-green-600 text-white py-2 px-4 rounded-md text-sm font-bold">+ SUMMARY</button>
                 </div>
                 <div id="monthly-summary-grid" class="grid grid-cols-1 md:grid-cols-4 gap-6"></div>
             </div>
 
             <div id="residents-view" class="hidden">
-                 <button id="back-to-dashboard-from-residents" class="text-blue-600 dark:text-blue-400 font-semibold mb-6 flex items-center">&larr; Back to Dashboard</button>
+                 <button id="back-to-dashboard-from-residents" class="text-blue-600 dark:text-blue-400 font-semibold mb-6 flex items-center">&larr; Back</button>
                  <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md border dark:border-slate-700">
                      <h2 class="text-2xl font-bold mb-6">Manage Residents</h2>
                      <form id="resident-form" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end mb-8">
-                         <div><label class="block text-xs font-bold text-slate-500 mb-1">Flat No.</label><input type="text" id="r-flat" placeholder="A-101" required class="w-full border-slate-300 dark:bg-slate-700 dark:border-slate-600 rounded p-2"></div>
-                         <div class="md:col-span-2"><label class="block text-xs font-bold text-slate-500 mb-1">Owner Name</label><input type="text" id="r-name" placeholder="Mr. Chaubey" required class="w-full border-slate-300 dark:bg-slate-700 dark:border-slate-600 rounded p-2"></div>
-                         <div><label class="block text-xs font-bold text-slate-500 mb-1">Maint. Amount</label><input type="number" id="r-amount" placeholder="2500" required class="w-full border-slate-300 dark:bg-slate-700 dark:border-slate-600 rounded p-2"></div>
-                         <div><label class="block text-xs font-bold text-slate-500 mb-1">Status</label><select id="r-status" class="w-full border-slate-300 dark:bg-slate-700 dark:border-slate-600 rounded p-2"><option value="Sold">Sold</option><option value="Unsold">Unsold</option></select></div>
+                         <div><label class="block text-xs font-bold mb-1 text-slate-500 uppercase">Room No.</label><input type="text" id="r-flat" placeholder="306" required class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"></div>
+                         <div class="md:col-span-2"><label class="block text-xs font-bold mb-1 text-slate-500 uppercase">Owner Name</label><input type="text" id="r-name" placeholder="Mr. Chaubey" required class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"></div>
+                         <div><label class="block text-xs font-bold mb-1 text-slate-500 uppercase">Amount</label><input type="number" id="r-amount" placeholder="1340" required class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"></div>
+                         <div><label class="block text-xs font-bold mb-1 text-slate-500 uppercase">Status</label><select id="r-status" class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"><option value="Sold">Sold</option><option value="Unsold">Unsold</option></select></div>
                          <div class="flex gap-2">
-                             <button type="submit" id="resident-submit-btn" class="w-full bg-blue-600 text-white font-bold py-2 rounded-md">Add</button>
-                             <button type="button" id="cancel-edit-btn" class="hidden bg-slate-200 dark:bg-slate-600 py-2 px-4 rounded-md">Cancel</button>
+                             <button type="submit" id="resident-submit-btn" class="w-full bg-blue-600 text-white font-bold py-2 rounded">Add</button>
+                             <button type="button" id="cancel-edit-btn" class="hidden bg-slate-200 py-2 px-4 rounded text-black">Cancel</button>
                          </div>
                      </form>
-                     <div class="overflow-x-auto"><table class="w-full">
-                         <thead class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600"><tr>
-                            <th class="p-3 text-left text-xs font-bold uppercase">Flat No.</th><th class="p-3 text-left text-xs font-bold uppercase">Owner Name</th><th class="p-3 text-left text-xs font-bold uppercase">Amount</th><th class="p-3 text-left text-xs font-bold uppercase">Status</th><th class="p-3 text-center text-xs font-bold uppercase">Actions</th>
-                         </tr></thead>
-                         <tbody id="residents-table-body" class="divide-y dark:divide-slate-700"></tbody>
-                     </table></div>
+                     <div class="overflow-x-auto"><table class="w-full"><thead class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600"><tr><th class="p-3 text-left text-xs font-bold text-slate-500 uppercase">Flat</th><th class="p-3 text-left text-xs font-bold text-slate-500 uppercase">Owner</th><th class="p-3 text-left text-xs font-bold text-slate-500 uppercase">Amount</th><th class="p-3 text-right text-xs font-bold text-slate-500 uppercase">Actions</th></tr></thead><tbody id="residents-table-body" class="divide-y dark:divide-slate-700"></tbody></table></div>
                  </div>
             </div>
 
             <div id="detail-view" class="hidden">
                  <div class="mb-6 flex justify-between items-center">
-                    <button id="back-to-dashboard-from-detail" class="text-blue-600 dark:text-blue-400 font-semibold">&larr; Back to Dashboard</button>
-                    <button id="export-excel-btn" class="bg-green-600 text-white font-bold py-2 px-4 rounded-md shadow">Export to Excel</button>
+                    <button id="back-to-dashboard-from-detail" class="text-blue-600 dark:text-blue-400 font-semibold">&larr; Back</button>
+                    <div class="flex gap-2">
+                        <button id="export-excel-btn" class="bg-green-600 text-white font-bold py-2 px-4 rounded shadow text-xs">Excel</button>
+                        <button id="export-pdf-btn" class="bg-red-600 text-white font-bold py-2 px-4 rounded shadow text-xs">PDF</button>
+                        <button id="export-image-btn" class="bg-indigo-600 text-white font-bold py-2 px-4 rounded shadow text-xs">Image</button>
+                    </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-purple-100 dark:bg-purple-900/30 p-6 rounded-lg"><h3 class="text-purple-600 font-bold">Opening Balance</h3><p id="opening-balance" class="text-3xl font-bold dark:text-purple-400">₹0.00</p></div>
-                    <div class="bg-blue-100 dark:bg-blue-900/30 p-6 rounded-lg"><h3 class="text-blue-600 font-bold">Collected</h3><p id="total-collected" class="text-3xl font-bold dark:text-blue-400">₹0.00</p></div>
-                    <div class="bg-red-100 dark:bg-red-900/30 p-6 rounded-lg"><h3 class="text-red-600 font-bold">Expenses</h3><p id="total-expenses" class="text-3xl font-bold dark:text-red-400">₹0.00</p></div>
-                    <div id="balance-card" class="bg-green-100 dark:bg-green-900/30 p-6 rounded-lg"><h3 class="text-green-600 font-bold">Closing Balance</h3><p id="closing-balance" class="text-3xl font-bold dark:text-green-400">₹0.00</p></div>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg"><h3 class="text-blue-600 font-bold text-sm">Opening</h3><p id="opening-balance" class="text-2xl font-bold">₹0.00</p></div>
+                    <div class="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg"><h3 class="text-green-600 font-bold text-sm">Collected</h3><p id="total-collected" class="text-2xl font-bold">₹0.00</p></div>
+                    <div class="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg"><h3 class="text-red-600 font-bold text-sm">Expenses</h3><p id="total-expenses" class="text-2xl font-bold">₹0.00</p></div>
+                    <div class="bg-slate-50 dark:bg-slate-800 p-6 rounded-lg border dark:border-slate-700"><h3 class="font-bold text-sm text-slate-600 dark:text-slate-400">Closing</h3><p id="closing-balance" class="text-2xl font-bold">₹0.00</p></div>
                 </div>
                 <nav class="flex space-x-6 border-b dark:border-slate-700 mb-6" id="detail-tabs">
-                    <button data-tab="status" class="py-4 px-1 border-b-2 font-bold text-sm tab-active">Payment Status</button>
-                    <button data-tab="collection" class="py-4 px-1 border-b-2 font-bold text-sm text-gray-500">Collections</button>
-                    <button data-tab="expenses" class="py-4 px-1 border-b-2 font-bold text-sm text-gray-500">Expenses</button>
+                    <button data-tab="status" class="py-4 px-1 border-b-2 font-bold text-sm tab-active">Maintenance Grid</button>
+                    <button data-tab="collection" class="py-4 px-1 border-b-2 font-bold text-sm text-gray-500">Payments Log</button>
+                    <button data-tab="expenses" class="py-4 px-1 border-b-2 font-bold text-sm text-gray-500">Expenses Log</button>
                 </nav>
                 <div id="tab-content">
                     <div id="status-tab">
-                         <div class="flex gap-2 mb-4" id="status-filters">
+                        <div class="flex gap-2 mb-4" id="status-filters">
                              <button data-filter="all" class="bg-blue-500 text-white px-3 py-1 text-xs rounded">All</button>
                              <button data-filter="pending" class="bg-gray-200 dark:bg-slate-700 px-3 py-1 text-xs rounded">Pending</button>
                              <button data-filter="paid" class="bg-gray-200 dark:bg-slate-700 px-3 py-1 text-xs rounded">Paid</button>
-                         </div>
-                         <div class="bg-white dark:bg-slate-800 rounded shadow"><table class="w-full"><tbody id="payment-status-table" class="divide-y dark:divide-slate-700"></tbody></table></div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded border dark:border-slate-700 overflow-hidden"><table class="w-full"><tbody id="payment-status-table" class="divide-y dark:divide-slate-700"></tbody></table></div>
                     </div>
                     <div id="collection-tab" class="hidden">
-                        <form id="maintenance-form" class="grid grid-cols-2 gap-4 bg-white dark:bg-slate-800 p-6 rounded shadow mb-6">
+                        <form id="maintenance-form" class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-slate-800 p-6 rounded border dark:border-slate-700 mb-6 shadow-sm">
                             <input type="date" id="m-date" required class="p-2 border dark:bg-slate-700 rounded">
                             <select id="m-flat" required class="p-2 border dark:bg-slate-700 rounded"></select>
-                            <input type="text" id="m-name" readonly class="p-2 border bg-slate-50 dark:bg-slate-600 rounded">
-                            <input type="number" id="m-amount" readonly class="p-2 border bg-slate-50 dark:bg-slate-600 rounded">
+                            <input type="text" id="m-name" readonly placeholder="Name" class="p-2 border bg-slate-100 dark:bg-slate-600 rounded">
+                            <input type="number" id="m-amount" readonly placeholder="Amount" class="p-2 border bg-slate-100 dark:bg-slate-600 rounded">
                             <select id="m-mode" class="p-2 border dark:bg-slate-700 rounded"><option>UPI</option><option>Cash</option></select>
-                            <button type="submit" class="bg-blue-600 text-white font-bold py-2 rounded">LOG PAYMENT</button>
+                            <button type="submit" class="bg-blue-600 text-white font-bold py-2 rounded shadow-md">Log Payment</button>
                         </form>
-                        <table class="w-full bg-white dark:bg-slate-800 rounded shadow"><tbody id="collection-log-table" class="divide-y"></tbody></table>
+                        <div class="bg-white dark:bg-slate-800 rounded shadow overflow-hidden"><table class="w-full text-sm"><thead class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600"><tr><th class="p-3 text-left font-bold text-slate-500">Date</th><th class="p-3 text-left font-bold text-slate-500">Flat & Owner</th><th class="p-3 text-left font-bold text-slate-500">Amount</th><th class="p-3 text-right font-bold text-slate-500">Action</th></tr></thead><tbody id="collection-log-table" class="divide-y dark:divide-slate-700"></tbody></table></div>
                     </div>
                     <div id="expenses-tab" class="hidden">
-                        <form id="expense-form" class="grid grid-cols-2 gap-4 bg-white dark:bg-slate-800 p-6 rounded shadow mb-6">
+                        <form id="expense-form" class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white dark:bg-slate-800 p-6 rounded border dark:border-slate-700 mb-6 shadow-sm">
                             <input type="date" id="e-date" required class="p-2 border dark:bg-slate-700 rounded">
+                            <input type="text" id="e-desc" required placeholder="Description" class="md:col-span-2 p-2 border dark:bg-slate-700 rounded">
                             <input type="number" id="e-amount" required placeholder="Amount" class="p-2 border dark:bg-slate-700 rounded">
-                            <input type="text" id="e-desc" required placeholder="Description" class="col-span-2 p-2 border dark:bg-slate-700 rounded">
-                            <button type="submit" class="bg-blue-600 text-white font-bold py-2 rounded col-span-2">ADD EXPENSE</button>
+                            <button type="submit" class="bg-red-600 text-white font-bold py-2 rounded md:col-span-4 shadow-md">Add Expense</button>
                         </form>
-                        <table class="w-full bg-white dark:bg-slate-800 rounded shadow"><tbody id="expense-log-table" class="divide-y"></tbody></table>
+                        <div class="bg-white dark:bg-slate-800 rounded border overflow-hidden"><table class="w-full text-sm"><thead class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600"><tr><th class="p-3 text-left font-bold text-slate-500">Date</th><th class="p-3 text-left font-bold text-slate-500">Description</th><th class="p-3 text-left font-bold text-slate-500">Amount</th><th class="p-3 text-right font-bold text-slate-500">Action</th></tr></thead><tbody id="expense-log-table" class="divide-y dark:divide-slate-700"></tbody></table></div>
                     </div>
                 </div>
             </div>

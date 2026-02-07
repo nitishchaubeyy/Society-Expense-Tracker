@@ -7,48 +7,62 @@ import { onSnapshot, collection, query, where, getDocs } from "https://www.gstat
 
 let state = { residents: [], sheets: [], summaries: [], collections: [], expenses: [], currentSheetId: null, currentSheetName: null, currentSheetDate: null, activeStatusFilter: 'all', editingResidentId: null };
 
-// --- THEME & AUTH ---
-function initTheme() {
-    const toggleBtn = document.getElementById('theme-toggle');
-    toggleBtn?.addEventListener('click', () => {
-        const isDark = document.documentElement.classList.toggle('dark');
-        localStorage.theme = isDark ? 'dark' : 'light';
+// --- VIEW MANAGEMENT ---
+function renderView(viewId) {
+    ['dashboard-view', 'residents-view', 'detail-view'].forEach(v => {
+        const el = document.getElementById(v); if (el) el.classList.toggle('hidden', v !== viewId);
     });
 }
-initTheme();
+function navigateTo(viewId) {
+    history.pushState({ viewId }, '', `#${viewId}`); renderView(viewId);
+}
+window.addEventListener('popstate', (e) => {
+    const viewId = (e.state && e.state.viewId) ? e.state.viewId : 'dashboard-view'; renderView(viewId);
+});
 
+// --- AUTH ---
 onAuthStateChanged(auth, user => {
-    const loading = document.getElementById('loading');
-    const authC = document.getElementById('auth-container');
-    const contentC = document.getElementById('content-container');
-    if (loading) loading.style.display = 'none';
+    document.getElementById('loading').style.display = 'none';
     if (user) {
-        authC?.classList.add('hidden'); contentC?.classList.remove('hidden');
-        document.getElementById('welcomeMessage').textContent = `Welcome, ${user.email}`;
+        document.getElementById('auth-container').classList.add('hidden');
+        document.getElementById('content-container').classList.remove('hidden');
+        document.getElementById('welcomeMessage').textContent = `Admin: ${user.email}`;
+        history.replaceState({ viewId: 'dashboard-view' }, '', '#dashboard-view');
+        renderView('dashboard-view');
         initGlobal();
     } else {
-        authC?.classList.remove('hidden'); contentC?.classList.add('hidden');
+        document.getElementById('auth-container').classList.remove('hidden');
+        document.getElementById('content-container').classList.add('hidden');
     }
 });
 
 function initGlobal() {
     onSnapshot(collection(db, 'expense_sheets'), s => { state.sheets = s.docs.map(d => ({id: d.id, ...d.data()})); UI.renderDashboardSheets(state.sheets); });
-    onSnapshot(collection(db, 'residents'), s => { state.residents = s.docs.map(d => ({id: d.id, ...d.data()})); UI.renderResidentsTable(state.residents); populateFlatDropdown(); if(state.currentSheetId) UI.renderStatus(state.residents, state.collections, state.activeStatusFilter); });
+    onSnapshot(collection(db, 'residents'), s => { 
+        state.residents = s.docs.map(d => ({id: d.id, ...d.data()})); 
+        UI.renderResidentsTable(state.residents); populateFlatDropdown(); 
+        if(state.currentSheetId) UI.renderStatus(state.residents, state.collections, state.activeStatusFilter);
+    });
     onSnapshot(collection(db, 'monthly_summary'), s => { state.summaries = s.docs.map(d => ({id: d.id, ...d.data()})); UI.renderMonthlySummaries(state.summaries); });
 }
 
 function initSheet(id) {
     onSnapshot(query(collection(db, 'expenses'), where('sheetId', '==', id)), s => { state.expenses = s.docs.map(d => ({id: d.id, ...d.data()})); UI.renderExpenses(state.expenses); updateSheetSummary(); });
-    onSnapshot(query(collection(db, 'maintenance'), where('sheetId', '==', id)), s => { state.collections = s.docs.map(d => ({id: d.id, ...d.data()})); UI.renderCollections(state.collections); UI.renderStatus(state.residents, state.collections, state.activeStatusFilter); updateSheetSummary(); });
+    onSnapshot(query(collection(db, 'maintenance'), where('sheetId', '==', id)), s => { 
+        state.collections = s.docs.map(d => ({id: d.id, ...d.data()})); 
+        UI.renderCollections(state.collections); UI.renderStatus(state.residents, state.collections, state.activeStatusFilter); updateSheetSummary(); 
+    });
 }
 
-// --- CALCS & HELPERS ---
+// --- FINANCIALS ---
 async function updateSheetSummary() {
     const opening = await calculateOpening();
     const colTotal = state.collections.reduce((a, b) => a + b.amount, 0);
     const expTotal = state.expenses.reduce((a, b) => a + b.amount, 0);
-    const oEl = document.getElementById('opening-balance'); const cEl = document.getElementById('total-collected'); const eEl = document.getElementById('total-expenses'); const bEl = document.getElementById('closing-balance');
-    if (oEl) oEl.textContent = UI.formatCurrency(opening); if (cEl) cEl.textContent = UI.formatCurrency(colTotal); if (eEl) eEl.textContent = UI.formatCurrency(expTotal); if (bEl) bEl.textContent = UI.formatCurrency(opening + colTotal - expTotal);
+    document.getElementById('opening-balance').textContent = UI.formatCurrency(opening);
+    document.getElementById('total-collected').textContent = UI.formatCurrency(colTotal);
+    document.getElementById('total-expenses').textContent = UI.formatCurrency(expTotal);
+    document.getElementById('closing-balance').textContent = UI.formatCurrency(opening + colTotal - expTotal);
 }
 
 async function calculateOpening() {
@@ -67,80 +81,107 @@ function populateFlatDropdown() {
     });
 }
 
-// --- MASTER CLICK LISTENER ---
+// --- MASTER CLICK HANDLER ---
 document.addEventListener('click', async e => {
     const t = e.target;
-    const sc = t.closest('.sheet-card');
+    if (t.closest('#back-to-dashboard-from-detail') || t.closest('#back-to-dashboard-from-residents')) { history.back(); return; }
+    
+    if (t.closest('#theme-toggle')) {
+        const isDark = document.documentElement.classList.toggle('dark');
+        localStorage.theme = isDark ? 'dark' : 'light'; return;
+    }
 
-    if (t.closest('#back-to-dashboard-from-detail') || t.closest('#back-to-dashboard-from-residents')) { location.reload(); return; }
+    const sc = t.closest('.sheet-card');
     if (sc && !t.closest('.delete-sheet-btn')) {
         state.currentSheetId = sc.dataset.id; state.currentSheetName = sc.dataset.name; state.currentSheetDate = parseInt(sc.dataset.date);
-        document.getElementById('dashboard-view')?.classList.add('hidden'); document.getElementById('detail-view')?.classList.remove('hidden');
+        navigateTo('detail-view');
         document.getElementById('header-title').textContent = `Sheet: ${sc.dataset.name}`;
         initSheet(sc.dataset.id); UI.switchTab('status'); return;
     }
 
-    const tabBtn = t.closest('[data-tab]'); if (tabBtn) { UI.switchTab(tabBtn.dataset.tab); return; }
-    if (t.dataset.filter) {
-        state.activeStatusFilter = t.dataset.filter;
-        document.querySelectorAll('#status-filters button').forEach(b => b.className = b.dataset.filter === state.activeStatusFilter ? 'bg-blue-500 text-white px-3 py-1 rounded text-sm' : 'bg-gray-200 dark:bg-slate-700 px-3 py-1 rounded text-sm');
-        UI.renderStatus(state.residents, state.collections, state.activeStatusFilter); return;
+    if (t.dataset.tab) { UI.switchTab(t.dataset.tab); return; }
+    if (t.id === 'manage-residents-btn') { navigateTo('residents-view'); return; }
+    if (t.id === 'open-sheet-recycle-bin-modal') { UI.createModal('r-bin', 'Bin History', `<div id="r-bin-content"></div>`); UI.renderRecycleBin(state.sheets); return; }
+
+    // Deletes
+    if (t.closest('.delete-collection-btn')) if(confirm("Delete Log?")) await DataService.deleteCollection(t.closest('.delete-collection-btn').dataset.id);
+    if (t.closest('.delete-expense-btn')) if(confirm("Delete Log?")) await DataService.deleteExpense(t.closest('.delete-expense-btn').dataset.id);
+    if (t.closest('.delete-sheet-btn')) if(confirm("Move to Bin?")) await DataService.updateSheet(t.closest('.delete-sheet-btn').dataset.id, {status: 'deleted'});
+    if (t.closest('.restore-sheet-btn')) { await DataService.updateSheet(t.closest('.restore-sheet-btn').dataset.id, {status: 'active'}); UI.renderRecycleBin(state.sheets); }
+    if (t.closest('.delete-resident-btn')) if(confirm("Delete Resident?")) await DataService.deleteResident(t.closest('.delete-resident-btn').dataset.id);
+    if (t.closest('.delete-summary-btn')) if(confirm("Delete Summary?")) await DataService.deleteSummary(t.closest('.delete-summary-btn').dataset.id);
+
+    // Edit Resident Populator
+    if (t.closest('.edit-resident-btn')) {
+        const r = state.residents.find(x => x.id === t.closest('.edit-resident-btn').dataset.id);
+        if (r) { state.editingResidentId = r.id; document.getElementById('r-flat').value = r.flatNo; document.getElementById('r-name').value = r.ownerName; document.getElementById('r-amount').value = r.maintAmount; document.getElementById('resident-submit-btn').textContent = "Update"; document.getElementById('cancel-edit-btn').classList.remove('hidden'); }
+    }
+    if (t.id === 'cancel-edit-btn') { state.editingResidentId = null; document.getElementById('resident-form').reset(); t.classList.add('hidden'); document.getElementById('resident-submit-btn').textContent = "Add"; }
+
+    // Summary Actions
+    if (t.closest('.edit-summary-btn')) {
+        const s = state.summaries.find(x => x.id === t.closest('.edit-summary-btn').dataset.id);
+        const m = UI.createModal('es', 'Edit Summary', `<form id="f-sum"><input id="en" value="${s.monthName}" required class="w-full border p-2 mb-2 rounded dark:bg-slate-700 dark:text-white"><input id="ec" type="number" value="${s.totalCollection}" required class="w-full border p-2 mb-2 rounded dark:bg-slate-700 dark:text-white"><input id="ex" type="number" value="${s.totalExpense}" required class="w-full border p-2 mb-4 rounded dark:bg-slate-700 dark:text-white"><button type="submit" class="bg-blue-600 text-white w-full py-2 rounded font-bold">UPDATE</button></form>`);
+        m.querySelector('form').onsubmit = async ev => { ev.preventDefault(); await DataService.updateSummary(s.id, {monthName: document.getElementById('en').value, totalCollection: parseFloat(document.getElementById('ec').value), totalExpense: parseFloat(document.getElementById('ex').value)}); m.remove(); };
     }
 
-    if (t.id === 'manage-residents-btn') { document.getElementById('dashboard-view')?.classList.add('hidden'); document.getElementById('residents-view')?.classList.remove('hidden'); return; }
-    if (t.id === 'open-sheet-recycle-bin-modal') { UI.createModal('r-bin', 'Recycle Bin', `<div id="r-bin-content" class="mb-4"></div><button class="bg-gray-200 dark:bg-slate-700 w-full py-2 rounded" data-close>CLOSE</button>`); UI.renderRecycleBin(state.sheets); return; }
+    if (t.id === 'export-excel-btn') UI.exportToExcel(state.currentSheetName, state.residents, state.collections, state.expenses);
+    if (t.id === 'export-pdf-btn') UI.exportToPDF(state.currentSheetName);
+    if (t.id === 'export-image-btn') UI.exportToImage(state.currentSheetName);
 
-    const editResBtn = t.closest('.edit-resident-btn');
-    if (editResBtn) {
-        const r = state.residents.find(x => x.id === editResBtn.dataset.id);
-        if (r) { state.editingResidentId = r.id; document.getElementById('r-flat').value = r.flatNo; document.getElementById('r-name').value = r.ownerName; document.getElementById('r-amount').value = r.maintAmount; document.getElementById('resident-submit-btn').textContent = "Update"; document.getElementById('cancel-edit-btn')?.classList.remove('hidden'); }
+    if (t.dataset.filter) {
+        document.querySelectorAll('#status-filters button').forEach(b => b.className = b.dataset.filter === t.dataset.filter ? 'bg-blue-500 text-white px-3 py-1 text-xs rounded' : 'bg-gray-200 dark:bg-slate-700 px-3 py-1 text-xs rounded');
+        UI.renderStatus(state.residents, state.collections, t.dataset.filter);
     }
 
     if (t.id === 'open-create-sheet-modal') {
-        const m = UI.createModal('cs', 'New Sheet', `<form id="f"><input id="sn" placeholder="e.g. Feb 2026" required class="w-full border p-2 mb-4 dark:bg-slate-700 rounded"><button type="submit" class="bg-blue-600 text-white w-full py-2 rounded font-bold">CREATE</button></form>`);
-        m.querySelector('form').onsubmit = async ev => { ev.preventDefault(); await DataService.addSheet({name: sn.value, createdAt: new Date(), status: 'active'}); m.remove(); };
+        const m = UI.createModal('cs', 'New Sheet', `<form id="f"><input id="sn" required placeholder="e.g. Feb 2026" class="w-full border p-2 mb-4 dark:bg-slate-700 rounded dark:text-white"><button type="submit" class="bg-blue-600 text-white w-full py-2 rounded font-bold">CREATE</button></form>`);
+        m.querySelector('form').onsubmit = async ev => { ev.preventDefault(); await DataService.addSheet({name: document.getElementById('sn').value, createdAt: new Date(), status: 'active'}); m.remove(); };
     }
-
+    
+    // Monthly Summary Modal with requested Placeholders
     if (t.id === 'open-add-month-modal') {
-        const m = UI.createModal('as', 'Add Summary', `<form id="f"><input id="n" placeholder="Month Name" required class="w-full border p-2 mb-2 dark:bg-slate-700 rounded"><input id="c" type="number" placeholder="Col" required class="w-full border p-2 mb-2 dark:bg-slate-700 rounded"><input id="x" type="number" placeholder="Exp" required class="w-full border p-2 mb-4 dark:bg-slate-700 rounded"><div class="flex gap-2"><button type="button" class="bg-gray-200 w-full py-2 rounded" data-close>CANCEL</button><button type="submit" class="bg-blue-600 text-white w-full py-2 rounded font-bold">SAVE</button></div></form>`);
-        m.querySelector('form').onsubmit = async ev => { ev.preventDefault(); await DataService.addSummary({monthName: n.value, totalCollection: parseFloat(c.value), totalExpense: parseFloat(x.value), createdAt: new Date()}); m.remove(); };
+        const m = UI.createModal('as', 'New Summary', `<form id="f"><input id="n" placeholder="Month" required class="w-full border p-2 mb-2 dark:bg-slate-700 rounded dark:text-white"><input id="c" type="number" placeholder="Collection" required class="w-full border p-2 mb-2 dark:bg-slate-700 rounded dark:text-white"><input id="x" type="number" placeholder="Expense" required class="w-full border p-2 mb-4 dark:bg-slate-700 rounded dark:text-white"><button type="submit" class="bg-blue-600 text-white w-full py-2 rounded font-bold">SAVE</button></form>`);
+        m.querySelector('form').onsubmit = async ev => { ev.preventDefault(); await DataService.addSummary({monthName: document.getElementById('n').value, totalCollection: parseFloat(document.getElementById('c').value), totalExpense: parseFloat(document.getElementById('x').value), createdAt: new Date()}); m.remove(); };
     }
 
-    if (t.closest('.edit-summary-btn')) {
-        const s = state.summaries.find(x => x.id === t.closest('.edit-summary-btn').dataset.id);
-        const m = UI.createModal('es', 'Edit Summary', `<form id="f"><input id="en" value="${s.monthName}" required class="w-full border p-2 mb-2 rounded dark:bg-slate-700"><input id="ec" type="number" value="${s.totalCollection}" required class="w-full border p-2 mb-2 rounded dark:bg-slate-700"><input id="ex" type="number" value="${s.totalExpense}" required class="w-full border p-2 mb-4 rounded dark:bg-slate-700"><button type="submit" class="bg-blue-600 text-white w-full py-2 rounded font-bold">UPDATE</button></form>`);
-        m.querySelector('form').onsubmit = async ev => { ev.preventDefault(); await DataService.updateSummary(s.id, {monthName: en.value, totalCollection: parseFloat(ec.value), totalExpense: parseFloat(ex.value)}); m.remove(); };
-    }
-
-    if (t.closest('.delete-sheet-btn')) if(confirm("Bin?")) await DataService.updateSheet(t.closest('.delete-sheet-btn').dataset.id, {status: 'deleted'});
-    if (t.closest('.restore-sheet-btn')) { await DataService.updateSheet(t.closest('.restore-sheet-btn').dataset.id, {status: 'active'}); UI.renderRecycleBin(state.sheets); }
-    if (t.closest('.delete-resident-btn')) if(confirm("Delete?")) await DataService.deleteResident(t.closest('.delete-resident-btn').dataset.id);
-    if (t.closest('.delete-expense-btn')) if(confirm("Delete?")) await DataService.deleteExpense(t.closest('.delete-expense-btn').dataset.id);
-    if (t.closest('.delete-summary-btn')) if(confirm("Delete?")) await DataService.deleteSummary(t.closest('.delete-summary-btn').dataset.id);
-    if (t.id === 'export-excel-btn') UI.exportToExcel(state.currentSheetName, state.residents, state.collections, state.expenses);
-    if (t.matches('[data-close]')) { const mod = t.closest('.fixed'); if(mod) mod.remove(); }
     if (t.id === 'logoutButton') signOut(auth);
+    if (t.matches('[data-close]')) { const mod = t.closest('.fixed'); if(mod) mod.remove(); }
 });
 
-// --- FORMS ---
+// --- FORM HANDLING ---
 document.getElementById('resident-form')?.addEventListener('submit', async e => {
-    e.preventDefault(); const d = { flatNo: r_flat.value, ownerName: r_name.value, maintAmount: parseFloat(r_amount.value), status: r_status.value };
-    if(state.editingResidentId) { await DataService.updateResident(state.editingResidentId, d); state.editingResidentId = null; resident_submit_btn.textContent = "Add"; }
+    e.preventDefault();
+    const d = { flatNo: document.getElementById('r-flat').value, ownerName: document.getElementById('r-name').value, maintAmount: parseFloat(document.getElementById('r-amount').value), status: document.getElementById('r-status').value };
+    if (state.editingResidentId) { await DataService.updateResident(state.editingResidentId, d); state.editingResidentId = null; document.getElementById('resident-submit-btn').textContent = "Add"; document.getElementById('cancel-edit-btn').classList.add('hidden'); }
     else await DataService.addResident(d); e.target.reset(); UI.showToast("Success");
 });
 
 document.getElementById('m-flat')?.addEventListener('change', e => {
     const res = state.residents.find(r => r.flatNo === e.target.value);
-    if(res) { m_name.value = res.ownerName; m_amount.value = res.maintAmount; }
+    if(res) { document.getElementById('m-name').value = res.ownerName; document.getElementById('m-amount').value = res.maintAmount; }
 });
 
 document.getElementById('maintenance-form')?.addEventListener('submit', async e => {
-    e.preventDefault(); await DataService.addCollection({date: m_date.value, flatNo: m_flat.value, ownerName: m_name.value, amount: parseFloat(m_amount.value), mode: m_mode.value, sheetId: state.currentSheetId}); e.target.reset(); UI.showToast("Logged");
+    e.preventDefault();
+    const flatSelected = document.getElementById('m-flat').value.toString().trim();
+    // DUPLICATE CHECK TRIGGER
+    const existing = state.collections.find(c => c.flatNo.toString().trim() === flatSelected);
+    if (existing) {
+        UI.showToast(`Error: ${flatSelected} already logged in this sheet!`, true);
+        return;
+    }
+    await DataService.addCollection({ date: document.getElementById('m-date').value, flatNo: flatSelected, ownerName: document.getElementById('m-name').value, amount: parseFloat(document.getElementById('m-amount').value), mode: document.getElementById('m-mode').value, sheetId: state.currentSheetId });
+    e.target.reset(); UI.showToast("Payment Logged");
 });
 
 document.getElementById('expense-form')?.addEventListener('submit', async e => {
-    e.preventDefault(); await DataService.addExpense({date: e_date.value, amount: parseFloat(e_amount.value), description: e_desc.value, sheetId: state.currentSheetId}); e.target.reset(); UI.showToast("Logged");
+    e.preventDefault();
+    await DataService.addExpense({ date: document.getElementById('e-date').value, amount: parseFloat(document.getElementById('e-amount').value), description: document.getElementById('e-desc').value, sheetId: state.currentSheetId });
+    e.target.reset(); UI.showToast("Logged");
 });
 
-const loginF = document.getElementById('loginForm');
-if (loginF) { loginF.onsubmit = async e => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value); } catch (err) { authError.textContent = "Failed"; } }; }
+document.getElementById('loginForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    try { await signInWithEmailAndPassword(auth, document.getElementById('loginEmail').value, document.getElementById('loginPassword').value); } catch (err) { document.getElementById('authError').textContent = "Login Failed"; }
+});
