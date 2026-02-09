@@ -126,27 +126,110 @@ export const renderRecycleBin = (s) => {
 export const exportToExcel = (sheetName, residents, collections, expenses) => {
     const wb = XLSX.utils.book_new();
     const paidMap = new Map(collections.map(c => [c.flatNo.toString().trim(), c]));
+    
+    // --- APPEALING COLOR PALETTE ---
+    const colors = {
+        yellowHeader: "FFFF00", 
+        blueSubHeader: "4472C4", 
+        greenPaid: "29B92C",   
+        redPending: "FF4D4D",  
+        lightGray: "F2F2F2",
+        whiteText: "FFFFFF",
+        blackText: "000000"
+    };
+
+    // --- STYLING DEFINITIONS ---
+    const sFloor = { fill: { fgColor: { rgb: colors.yellowHeader } }, font: { bold: true }, alignment: { horizontal: "center" }, border: { outline: true, top: {style: "thin"}, bottom: {style: "thin"}, left: {style: "thin"}, right: {style: "thin"} } };
+    const sSubHeader = { fill: { fgColor: { rgb: colors.blueSubHeader } }, font: { color: { rgb: colors.whiteText }, bold: true }, border: { outline: true, top: {style: "thin"}, bottom: {style: "thin"}, left: {style: "thin"}, right: {style: "thin"} } };
+    const sPaid = { fill: { fgColor: { rgb: colors.greenPaid } }, font: { bold: true, color: { rgb: colors.whiteText } }, border: { outline: true, top: {style: "thin"}, bottom: {style: "thin"}, left: {style: "thin"}, right: {style: "thin"} }, alignment: { horizontal: "center" } };
+    const sPending = { fill: { fgColor: { rgb: colors.redPending } }, border: { outline: true, top: {style: "thin"}, bottom: {style: "thin"}, left: {style: "thin"}, right: {style: "thin"} } };
+    const sBorder = { border: { top: {style: "thin"}, bottom: {style: "thin"}, left: {style: "thin"}, right: {style: "thin"} } };
+    const sSummary = { fill: { fgColor: { rgb: colors.lightGray } }, font: { bold: true }, border: { top: {style: "thin"}, bottom: {style: "thin"}, left: {style: "thin"}, right: {style: "thin"} } };
+    
+    const sGrandPaid = { fill: { fgColor: { rgb: colors.greenPaid } }, font: { color: { rgb: colors.whiteText }, bold: true }, border: { outline: true, top: {style: "medium"}, bottom: {style: "medium"}, left: {style: "medium"}, right: {style: "medium"} } };
+    const sGrandPending = { fill: { fgColor: { rgb: colors.redPending } }, font: { color: { rgb: colors.whiteText }, bold: true }, border: { outline: true, top: {style: "medium"}, bottom: {style: "medium"}, left: {style: "medium"}, right: {style: "medium"} } };
+
     const wsMain = {};
-    const floors = {}; residents.forEach(r => { const f = r.flatNo.charAt(0); if(!floors[f]) floors[f] = []; floors[f].push(r); });
-    wsMain['!merges'] = [];
-    Object.keys(floors).sort().forEach((fKey, index) => {
-        const col = (index % 4) * 5; const rowStart = Math.floor(index / 4) * 15;
-        wsMain[XLSX.utils.encode_cell({r:rowStart, c:col})] = {v: `Floor ${fKey}`, s: {fill:{fgColor:{rgb:"FFFF00"}}, font:{bold:true}, alignment:{horizontal:"center"}}};
-        wsMain['!merges'].push({s:{r:rowStart, c:col}, e:{r:rowStart, c:col+3}});
-        ["Room", "Owner", "Amount", "Status"].forEach((h, i) => wsMain[XLSX.utils.encode_cell({r:rowStart+1, c:col+i})] = {v:h, s:{fill:{fgColor:{rgb:"2F75B5"}}, font:{color:{rgb:"FFFFFF"}}}});
-        floors[fKey].forEach((res, rIdx) => {
-            const r = rowStart + 2 + rIdx; const pay = paidMap.get(res.flatNo.toString().trim());
-            wsMain[XLSX.utils.encode_cell({r, c:col})] = {v: res.flatNo};
-            wsMain[XLSX.utils.encode_cell({r, c:col+1})] = {v: res.ownerName};
-            const style = {fill:{fgColor:{rgb: pay ? "228B22" : "FF0000"}}, font:{color:{rgb:"FFFFFF"}}};
-            wsMain[XLSX.utils.encode_cell({r, c:col+2})] = {v: pay ? pay.amount : 0, s: style};
-            wsMain[XLSX.utils.encode_cell({r, c:col+3})] = {v: pay ? "Paid" : "Pending", s: style};
-        });
+    const floors = {}; 
+    residents.forEach(r => { 
+        const f = r.flatNo.charAt(0); 
+        if(!floors[f]) floors[f] = []; 
+        floors[f].push(r); 
     });
-    wsMain['!ref'] = "A1:Z100"; wsMain['!cols'] = Array(26).fill({wch: 12});
+
+    let grandPaidCount = 0;
+    let grandPendingCount = 0;
+    let grandTotalPaidAmt = 0;
+    let grandTotalPendingAmt = 0;
+    
+    wsMain['!merges'] = [];
+
+    // --- DRAWING THE BLOCKS ---
+    Object.keys(floors).sort().forEach((fKey, index) => {
+        const col = (index % 4) * 5; 
+        const rowStart = Math.floor(index / 4) * 12; 
+        
+        wsMain[XLSX.utils.encode_cell({r:rowStart, c:col})] = {v: `Floor ${fKey}`, s: sFloor};
+        wsMain['!merges'].push({s:{r:rowStart, c:col}, e:{r:rowStart, c:col+3}});
+        
+        ["Room Number", "Owner Name", "Amount Paid (₹)", "Remarks"].forEach((h, i) => {
+            wsMain[XLSX.utils.encode_cell({r:rowStart+1, c:col+i})] = {v:h, s:sSubHeader};
+        });
+
+        let floorAmt = 0;
+        let floorPendCount = 0;
+
+        floors[fKey].forEach((res, rIdx) => {
+            const r = rowStart + 2 + rIdx;
+            const pay = paidMap.get(res.flatNo.toString().trim());
+            
+            wsMain[XLSX.utils.encode_cell({r, c:col})] = {v: res.flatNo, s: sBorder};
+            wsMain[XLSX.utils.encode_cell({r, c:col+1})] = {v: res.ownerName, s: sBorder};
+            
+            if(pay) {
+                wsMain[XLSX.utils.encode_cell({r, c:col+2})] = {v: pay.amount, s: sPaid};
+                wsMain[XLSX.utils.encode_cell({r, c:col+3})] = {v: "Paid", s: sBorder};
+                floorAmt += pay.amount;
+                grandTotalPaidAmt += pay.amount;
+                grandPaidCount++;
+            } else {
+                wsMain[XLSX.utils.encode_cell({r, c:col+2})] = {v: "", s: sPending};
+                wsMain[XLSX.utils.encode_cell({r, c:col+3})] = {v: res.status === 'Sold' ? 'Pending' : 'Unsold', s: sBorder};
+                grandTotalPendingAmt += res.maintAmount;
+                floorPendCount++;
+                grandPendingCount++;
+            }
+        });
+
+        const summaryRow = rowStart + 9;
+        wsMain[XLSX.utils.encode_cell({r: summaryRow, c: col})] = {v: "Total", s: sSummary};
+        wsMain[XLSX.utils.encode_cell({r: summaryRow, c: col+2})] = {v: floorAmt, s: sSummary};
+        wsMain[XLSX.utils.encode_cell({r: summaryRow, c: col+3})] = {v: `Pending ${floorPendCount.toString().padStart(2, '0')}`, s: sSummary};
+    });
+
+    // --- POSITIONED GRAND TOTAL SECTION ---
+    // Row 13 (index 12 is 3 cells below Floor 4 summary)
+    // Column P (index 15 is 1 cell adjacent to Floor 7)
+    const gtRow = 13; 
+    const gtCol = 15;
+
+    // Total Paid
+    wsMain[XLSX.utils.encode_cell({r: gtRow, c: gtCol})] = {v: "Total Paid", s: sGrandPaid};
+    wsMain[XLSX.utils.encode_cell({r: gtRow, c: gtCol+1})] = {v: grandPaidCount, s: sGrandPaid};
+    wsMain[XLSX.utils.encode_cell({r: gtRow, c: gtCol+2})] = {v: `₹${grandTotalPaidAmt}`, s: sGrandPaid};
+
+    // Total Remaining (Separated by 1 Row)
+    wsMain[XLSX.utils.encode_cell({r: gtRow+2, c: gtCol})] = {v: "Total Rema", s: sGrandPending};
+    wsMain[XLSX.utils.encode_cell({r: gtRow+2, c: gtCol+1})] = {v: grandPendingCount, s: sGrandPending};
+    wsMain[XLSX.utils.encode_cell({r: gtRow+2, c: gtCol+2})] = {v: `₹${grandTotalPendingAmt}`, s: sGrandPending};
+
+    wsMain['!ref'] = "A1:S50"; // Optimized print area
+    wsMain['!cols'] = Array(20).fill({wch: 15});
     XLSX.utils.book_append_sheet(wb, wsMain, "Maintenance");
+
     const wsExp = XLSX.utils.json_to_sheet(expenses.map(e => ({ Date: e.date, Description: e.description, Amount: e.amount })));
     XLSX.utils.book_append_sheet(wb, wsExp, "Expenses");
+
     XLSX.writeFile(wb, `${sheetName}_Report.xlsx`);
 };
 
