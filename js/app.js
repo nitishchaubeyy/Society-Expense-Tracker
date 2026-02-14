@@ -104,11 +104,32 @@ document.addEventListener('click', async e => {
     if (t.id === 'open-sheet-recycle-bin-modal') { UI.createModal('r-bin', 'Bin History', `<div id="r-bin-content"></div>`); UI.renderRecycleBin(state.sheets); return; }
 
     // Deletes
-    if (t.closest('.delete-collection-btn')) if(confirm("Delete Log?")) await DataService.deleteCollection(t.closest('.delete-collection-btn').dataset.id);
-    if (t.closest('.delete-expense-btn')) if(confirm("Delete Log?")) await DataService.deleteExpense(t.closest('.delete-expense-btn').dataset.id);
+    if (t.closest('.delete-collection-btn')) {
+    if(confirm("Delete Log?")) {
+        await DataService.deleteCollection(t.closest('.delete-collection-btn').dataset.id);
+        UI.showToast("Log Removed: Payment entry successfully deleted.");
+    }
+    }
+    if (t.closest('.delete-expense-btn')) {
+    if(confirm("Delete Log?")) {
+        await DataService.deleteExpense(t.closest('.delete-expense-btn').dataset.id);
+        UI.showToast("Log Removed: Expense entry successfully deleted.");
+    }
+    }
     if (t.closest('.delete-sheet-btn')) if(confirm("Move to Bin?")) await DataService.updateSheet(t.closest('.delete-sheet-btn').dataset.id, {status: 'deleted'});
-    if (t.closest('.restore-sheet-btn')) { await DataService.updateSheet(t.closest('.restore-sheet-btn').dataset.id, {status: 'active'}); UI.renderRecycleBin(state.sheets); }
-    if (t.closest('.delete-resident-btn')) if(confirm("Delete Resident?")) await DataService.deleteResident(t.closest('.delete-resident-btn').dataset.id);
+
+    if (t.closest('.restore-sheet-btn')) { 
+    await DataService.updateSheet(t.closest('.restore-sheet-btn').dataset.id, {status: 'active'}); 
+    UI.renderRecycleBin(state.sheets); 
+    UI.showToast("Sheet Restored: Data is back on the Dashboard."); // New Toast!
+    }
+
+    if (t.closest('.delete-resident-btn')) {
+    if(confirm("Delete Resident?")) {
+        await DataService.deleteResident(t.closest('.delete-resident-btn').dataset.id);
+        UI.showToast("Resident Removed: Member deleted from database.");
+    }
+    }
     if (t.closest('.delete-summary-btn')) if(confirm("Delete Summary?")) await DataService.deleteSummary(t.closest('.delete-summary-btn').dataset.id);
 
     // Edit Resident Populator
@@ -165,20 +186,38 @@ document.getElementById('m-flat')?.addEventListener('change', e => {
 document.getElementById('maintenance-form')?.addEventListener('submit', async e => {
     e.preventDefault();
     const flatSelected = document.getElementById('m-flat').value.toString().trim();
-    // DUPLICATE CHECK TRIGGER
+    
+    // DUPLICATE CHECK
     const existing = state.collections.find(c => c.flatNo.toString().trim() === flatSelected);
     if (existing) {
-        UI.showToast(`Error: ${flatSelected} already logged in this sheet!`, true);
+        UI.showToast(`Log Already Exists: Flat ${flatSelected} is already paid!`, true);
         return;
     }
-    await DataService.addCollection({ date: document.getElementById('m-date').value, flatNo: flatSelected, ownerName: document.getElementById('m-name').value, amount: parseFloat(document.getElementById('m-amount').value), mode: document.getElementById('m-mode').value, sheetId: state.currentSheetId });
-    e.target.reset(); UI.showToast("Payment Logged");
+
+    await DataService.addCollection({ 
+        date: document.getElementById('m-date').value, 
+        flatNo: flatSelected, 
+        ownerName: document.getElementById('m-name').value, 
+        amount: parseFloat(document.getElementById('m-amount').value), 
+        mode: document.getElementById('m-mode').value, 
+        sheetId: state.currentSheetId 
+    });
+
+    e.target.reset(); 
+    UI.showToast("Log Added: Maintenance payment recorded."); // Success toast!
 });
 
 document.getElementById('expense-form')?.addEventListener('submit', async e => {
     e.preventDefault();
-    await DataService.addExpense({ date: document.getElementById('e-date').value, amount: parseFloat(document.getElementById('e-amount').value), description: document.getElementById('e-desc').value, sheetId: state.currentSheetId });
-    e.target.reset(); UI.showToast("Logged");
+    await DataService.addExpense({ 
+        date: document.getElementById('e-date').value, 
+        amount: parseFloat(document.getElementById('e-amount').value), 
+        description: document.getElementById('e-desc').value, 
+        sheetId: state.currentSheetId 
+    });
+
+    e.target.reset(); 
+    UI.showToast("Log Added: Expense successfully saved."); // Success toast!
 });
 
 document.getElementById('loginForm')?.addEventListener('submit', async e => {

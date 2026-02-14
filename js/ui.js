@@ -1,14 +1,38 @@
-// js/ui.js
 export const formatCurrency = (a) => `₹${Number(a || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
-export const showToast = (m, isErr = false) => {
-    const t = document.getElementById('toast');
-    const msg = document.getElementById('toast-message');
-    if (!t || !msg) return;
-    msg.textContent = m;
-    t.className = `fixed bottom-5 left-1/2 -translate-x-1/2 py-3 px-6 rounded shadow-lg z-50 text-white transition-transform ${isErr ? 'bg-red-600' : 'bg-slate-800'}`;
-    t.classList.remove('translate-y-[200%]');
-    setTimeout(() => t.classList.add('translate-y-[200%]'), 4000); // Extended visibility
+export const showToast = (message, isError = false) => {
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toast-message');
+    const toastIcon = document.getElementById('toast-icon');
+    
+    if (!toast || !toastMsg || !toastIcon) return;
+
+    toastMsg.textContent = message;
+    toastIcon.textContent = isError ? "❌" : "✅";
+    toast.style.backgroundColor = isError ? "#FF4D4D" : "#29B92C";
+
+    if (!isError) {
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.9 },
+            colors: ['#29B92C', '#FFFFFF', '#FFD700']
+        });
+    } else {
+        toast.classList.add('toast-shake');
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        setTimeout(() => toast.classList.remove('toast-shake'), 500);
+    }
+
+    toast.style.display = "flex";
+    setTimeout(() => {
+        toast.style.bottom = "40px";
+    }, 10);
+
+    setTimeout(() => {
+        toast.style.bottom = "-100px";
+        setTimeout(() => { toast.style.display = "none"; }, 500);
+    }, 3000);
 };
 
 export const createModal = (id, title, content) => {

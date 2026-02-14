@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Society Finance Manager Pro</title>
+    
     <script>
         if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
@@ -11,6 +12,7 @@
             document.documentElement.classList.remove('dark');
         }
     </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { darkMode: 'class' }</script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
@@ -18,7 +20,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+
+    <style>
+      @keyframes shake {
+        0%, 100% { transform: translateX(-50%); }
+        25% { transform: translateX(-55%); }
+        75% { transform: translateX(-45%); }
+      }
+      .toast-shake {
+        animation: shake 0.2s ease-in-out 0s 2;
+      }
+    </style>
 </head>
+
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-200">
     <div id="app" class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         <div id="loading" class="text-center py-10"><p class="text-slate-500 font-medium">Loading Society Data...</p></div>
@@ -136,7 +150,13 @@
             </div>
         </div>
     </div>
-    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-800 text-white py-3 px-6 rounded-lg shadow-lg z-50 transition-transform translate-y-[200%]"><span id="toast-message"></span></div>
+
+    <div id="toast" style="display: none; position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 12px; color: white; font-weight: 500; z-index: 10000; transition: all 0.5s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px;">
+        <span id="toast-icon" style="font-size: 1.2rem;"></span>
+        <span id="toast-message" style="font-family: 'Inter', sans-serif;"></span>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script type="module" src="js/app.js"></script>
 </body>
 </html>

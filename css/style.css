@@ -1,5 +1,33 @@
-body { font-family: 'Inter', sans-serif; }
-.hidden { display: none; }
-#toast { transform: translateY(150%); transition: transform 0.3s ease-in-out; }
-#toast.show { transform: translateY(0); }
-.tab-active { border-color: #3b82f6; color: #3b82f6; }
+/* Core Styling */
+body { 
+    font-family: 'Inter', sans-serif; 
+}
+
+.hidden { 
+    display: none; 
+}
+
+/* Tab Navigation Styling */
+.tab-active { 
+    border-color: #3b82f6; 
+    color: #3b82f6; 
+}
+
+/* --- AESTHETIC ANIMATIONS --- */
+
+/* Shake Effect for Error Toasts */
+@keyframes shake {
+  0%, 100% { transform: translateX(-50%); }
+  25% { transform: translateX(-55%); }
+  75% { transform: translateX(-45%); }
+}
+
+.toast-shake {
+  animation: shake 0.2s ease-in-out 0s 2;
+}
+
+
+.dark body {
+    background-color: #0f172a; /* Matches slate-900 */
+    color: #f1f5f9;            /* Matches slate-100 */
+}
