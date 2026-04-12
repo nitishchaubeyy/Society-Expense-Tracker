@@ -144,7 +144,19 @@
                             <input type="number" id="e-amount" required placeholder="Amount" class="p-2 border dark:bg-slate-700 rounded">
                             <button type="submit" class="bg-red-600 text-white font-bold py-2 rounded md:col-span-4 shadow-md">Add Expense</button>
                         </form>
-                        <div class="bg-white dark:bg-slate-800 rounded border overflow-hidden"><table class="w-full text-sm"><thead class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600"><tr><th class="p-3 text-left font-bold text-slate-500">Date</th><th class="p-3 text-left font-bold text-slate-500">Description</th><th class="p-3 text-left font-bold text-slate-500">Amount</th><th class="p-3 text-right font-bold text-slate-500">Action</th></tr></thead><tbody id="expense-log-table" class="divide-y dark:divide-slate-700"></tbody></table></div>
+                        <div class="bg-white dark:bg-slate-800 rounded border overflow-x-auto shadow-sm">
+                            <table class="w-full text-sm min-w-[600px]">
+                                <thead class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600">
+                                    <tr>
+                                        <th class="p-3 text-left font-bold text-slate-500">Date</th>
+                                        <th class="p-3 text-left font-bold text-slate-500">Description</th>
+                                        <th class="p-3 text-left font-bold text-slate-500">Amount</th>
+                                        <th class="p-3 text-right font-bold text-slate-500">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expense-log-table" class="divide-y dark:divide-slate-700"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
