@@ -162,7 +162,7 @@ export const exportToExcel = (sheetName, residents, collections, expenses) => {
         blackText: "000000"
     };
 
-    // --- STYLING DEFINITIONS ---
+    // --- STYLING DEFINITIONS (Reused for both sheets) ---
     const sFloor = { fill: { fgColor: { rgb: colors.yellowHeader } }, font: { bold: true }, alignment: { horizontal: "center" }, border: { outline: true, top: {style: "thin"}, bottom: {style: "thin"}, left: {style: "thin"}, right: {style: "thin"} } };
     const sSubHeader = { fill: { fgColor: { rgb: colors.blueSubHeader } }, font: { color: { rgb: colors.whiteText }, bold: true }, border: { outline: true, top: {style: "thin"}, bottom: {style: "thin"}, left: {style: "thin"}, right: {style: "thin"} } };
     const sPaid = { fill: { fgColor: { rgb: colors.greenPaid } }, font: { bold: true, color: { rgb: colors.whiteText } }, border: { outline: true, top: {style: "thin"}, bottom: {style: "thin"}, left: {style: "thin"}, right: {style: "thin"} }, alignment: { horizontal: "center" } };
@@ -173,6 +173,7 @@ export const exportToExcel = (sheetName, residents, collections, expenses) => {
     const sGrandPaid = { fill: { fgColor: { rgb: colors.greenPaid } }, font: { color: { rgb: colors.whiteText }, bold: true }, border: { outline: true, top: {style: "medium"}, bottom: {style: "medium"}, left: {style: "medium"}, right: {style: "medium"} } };
     const sGrandPending = { fill: { fgColor: { rgb: colors.redPending } }, font: { color: { rgb: colors.whiteText }, bold: true }, border: { outline: true, top: {style: "medium"}, bottom: {style: "medium"}, left: {style: "medium"}, right: {style: "medium"} } };
 
+    // --- MAINTENANCE SHEET (NO CHANGES MADE HERE) ---
     const wsMain = {};
     const floors = {}; 
     residents.forEach(r => { 
@@ -185,31 +186,23 @@ export const exportToExcel = (sheetName, residents, collections, expenses) => {
     let grandPendingCount = 0;
     let grandTotalPaidAmt = 0;
     let grandTotalPendingAmt = 0;
-    
     wsMain['!merges'] = [];
 
-    // --- DRAWING THE BLOCKS ---
     Object.keys(floors).sort().forEach((fKey, index) => {
         const col = (index % 4) * 5; 
         const rowStart = Math.floor(index / 4) * 12; 
-        
         wsMain[XLSX.utils.encode_cell({r:rowStart, c:col})] = {v: `Floor ${fKey}`, s: sFloor};
         wsMain['!merges'].push({s:{r:rowStart, c:col}, e:{r:rowStart, c:col+3}});
-        
         ["Room Number", "Owner Name", "Amount Paid (₹)", "Remarks"].forEach((h, i) => {
             wsMain[XLSX.utils.encode_cell({r:rowStart+1, c:col+i})] = {v:h, s:sSubHeader};
         });
-
         let floorAmt = 0;
         let floorPendCount = 0;
-
         floors[fKey].forEach((res, rIdx) => {
             const r = rowStart + 2 + rIdx;
             const pay = paidMap.get(res.flatNo.toString().trim());
-            
             wsMain[XLSX.utils.encode_cell({r, c:col})] = {v: res.flatNo, s: sBorder};
             wsMain[XLSX.utils.encode_cell({r, c:col+1})] = {v: res.ownerName, s: sBorder};
-            
             if(pay) {
                 wsMain[XLSX.utils.encode_cell({r, c:col+2})] = {v: pay.amount, s: sPaid};
                 wsMain[XLSX.utils.encode_cell({r, c:col+3})] = {v: "Paid", s: sBorder};
@@ -224,36 +217,58 @@ export const exportToExcel = (sheetName, residents, collections, expenses) => {
                 grandPendingCount++;
             }
         });
-
         const summaryRow = rowStart + 9;
         wsMain[XLSX.utils.encode_cell({r: summaryRow, c: col})] = {v: "Total", s: sSummary};
         wsMain[XLSX.utils.encode_cell({r: summaryRow, c: col+2})] = {v: floorAmt, s: sSummary};
         wsMain[XLSX.utils.encode_cell({r: summaryRow, c: col+3})] = {v: `Pending ${floorPendCount.toString().padStart(2, '0')}`, s: sSummary};
     });
 
-    // --- POSITIONED GRAND TOTAL SECTION ---
-    // Row 13 (index 12 is 3 cells below Floor 4 summary)
-    // Column P (index 15 is 1 cell adjacent to Floor 7)
-    const gtRow = 13; 
-    const gtCol = 15;
-
-    // Total Paid
+    const gtRow = 13; const gtCol = 15;
     wsMain[XLSX.utils.encode_cell({r: gtRow, c: gtCol})] = {v: "Total Paid", s: sGrandPaid};
     wsMain[XLSX.utils.encode_cell({r: gtRow, c: gtCol+1})] = {v: grandPaidCount, s: sGrandPaid};
     wsMain[XLSX.utils.encode_cell({r: gtRow, c: gtCol+2})] = {v: `₹${grandTotalPaidAmt}`, s: sGrandPaid};
-
-    // Total Remaining (Separated by 1 Row)
     wsMain[XLSX.utils.encode_cell({r: gtRow+2, c: gtCol})] = {v: "Total Rema", s: sGrandPending};
     wsMain[XLSX.utils.encode_cell({r: gtRow+2, c: gtCol+1})] = {v: grandPendingCount, s: sGrandPending};
     wsMain[XLSX.utils.encode_cell({r: gtRow+2, c: gtCol+2})] = {v: `₹${grandTotalPendingAmt}`, s: sGrandPending};
-
-    wsMain['!ref'] = "A1:S50"; // Optimized print area
+    wsMain['!ref'] = "A1:S50";
     wsMain['!cols'] = Array(20).fill({wch: 15});
     XLSX.utils.book_append_sheet(wb, wsMain, "Maintenance");
 
-    const wsExp = XLSX.utils.json_to_sheet(expenses.map(e => ({ Date: e.date, Description: e.description, Amount: e.amount })));
+    // --- NEW STYLED EXPENSES SHEET WITH TOTAL ---
+    const wsExp = {};
+    const expHeaders = ["Date", "Description", "Amount (₹)"];
+    
+    // 1. Draw Styled Headers
+    expHeaders.forEach((h, i) => {
+        wsExp[XLSX.utils.encode_cell({r:0, c:i})] = {v: h, s: sSubHeader};
+    });
+
+    // 2. Draw Data Rows with Borders
+    let totalExpAmt = 0;
+    expenses.forEach((e, idx) => {
+        const r = idx + 1;
+        wsExp[XLSX.utils.encode_cell({r, c:0})] = {v: e.date, s: sBorder};
+        wsExp[XLSX.utils.encode_cell({r, c:1})] = {v: e.description, s: sBorder};
+        wsExp[XLSX.utils.encode_cell({r, c:2})] = {v: e.amount, s: sBorder};
+        totalExpAmt += e.amount;
+    });
+
+    // 3. Draw Total Summary Row (Reusing Light Gray Aesthetic)
+    const tRow = expenses.length + 1;
+    wsExp[XLSX.utils.encode_cell({r: tRow, c: 0})] = {v: "TOTAL EXPENSES", s: sSummary};
+    wsExp[XLSX.utils.encode_cell({r: tRow, c: 1})] = {v: "", s: sSummary};
+    wsExp[XLSX.utils.encode_cell({r: tRow, c: 2})] = {v: `₹${totalExpAmt}`, s: sSummary};
+    
+    // Merge "TOTAL EXPENSES" across Date and Description columns
+    wsExp['!merges'] = [{ s: {r: tRow, c: 0}, e: {r: tRow, c: 1} }];
+    
+    // Finalize Sheet
+    wsExp['!ref'] = XLSX.utils.encode_range({s: {r:0, c:0}, e: {r: tRow, c: 2}});
+    wsExp['!cols'] = [{wch: 15}, {wch: 40}, {wch: 20}]; // Specific widths for expenses
+    
     XLSX.utils.book_append_sheet(wb, wsExp, "Expenses");
 
+    // --- WRITE FILE ---
     XLSX.writeFile(wb, `${sheetName}_Report.xlsx`);
 };
 
