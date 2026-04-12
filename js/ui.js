@@ -119,8 +119,9 @@ export const renderExpenses = (e) => {
     body.innerHTML = '';
     e.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(x => {
         const row = body.insertRow();
-        row.innerHTML = `<td class="p-3 dark:text-slate-300">${x.date}</td><td class="p-3 dark:text-slate-200">${x.description}</td><td class="p-3 font-bold dark:text-white">${formatCurrency(x.amount)}</td>
-        <td class="p-3 text-right"><button data-id="${x.id}" class="text-red-500 text-[10px] font-bold delete-expense-btn uppercase">Delete</button></td>`;
+        // Added whitespace-nowrap to cells to ensure horizontal scroll triggers correctly on mobile
+        row.innerHTML = `<td class="p-3 dark:text-slate-300 whitespace-nowrap">${x.date}</td><td class="p-3 dark:text-slate-200 whitespace-nowrap">${x.description}</td><td class="p-3 font-bold dark:text-white whitespace-nowrap">${formatCurrency(x.amount)}</td>
+        <td class="p-3 text-right whitespace-nowrap"><button data-id="${x.id}" class="text-red-500 text-[10px] font-bold delete-expense-btn uppercase">Delete</button></td>`;
     });
 };
 
