@@ -1,199 +1,794 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" class="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Society Finance Manager Pro</title>
 
-    <link rel="manifest" href="site.webmanifest">
+    <link rel="manifest" href="site.webmanifest" />
 
-    <link rel="icon" type="image/png" href="icons/favicon-96x96.png" sizes="96x96">
-    <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
-    <link rel="shortcut icon" href="icons/favicon.ico">
-    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+    <link
+      rel="icon"
+      type="image/png"
+      href="icons/favicon-96x96.png"
+      sizes="96x96"
+    />
+    <link rel="icon" type="image/svg+xml" href="icons/favicon.svg" />
+    <link rel="shortcut icon" href="icons/favicon.ico" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="icons/apple-touch-icon.png"
+    />
 
-    <meta name="theme-color" content="#ffffff">
-    
+    <meta name="theme-color" content="#ffffff" />
+
     <script>
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
+      if (
+        localStorage.theme === "dark" ||
+        (!("theme" in localStorage) &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches)
+      ) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config = { darkMode: 'class' }</script>
+    <script>
+      tailwind.config = { darkMode: "class" };
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
 
     <style>
       @keyframes shake {
-        0%, 100% { transform: translateX(-50%); }
-        25% { transform: translateX(-55%); }
-        75% { transform: translateX(-45%); }
+        0%,
+        100% {
+          transform: translateX(-50%);
+        }
+        25% {
+          transform: translateX(-55%);
+        }
+        75% {
+          transform: translateX(-45%);
+        }
       }
       .toast-shake {
         animation: shake 0.2s ease-in-out 0s 2;
       }
     </style>
-</head>
+  </head>
 
-<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+  <body
+    class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-200"
+  >
     <div id="app" class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        <div id="loading" class="text-center py-10"><p class="text-slate-500 font-medium">Loading Society Data...</p></div>
+      <div id="loading" class="text-center py-10">
+        <p class="text-slate-500 font-medium">Loading Society Data...</p>
+      </div>
 
-        <div id="auth-container" class="hidden max-w-md mx-auto bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8 mt-10 border dark:border-slate-700">
-             <h2 class="text-2xl font-bold text-center">Admin Login</h2>
-             <form id="loginForm" class="mt-6">
-                 <div class="mb-4"><label class="block text-sm font-medium">Email</label><input type="email" id="loginEmail" required class="mt-1 w-full border-slate-300 dark:bg-slate-700 dark:border-slate-600 rounded p-2"></div>
-                 <div class="mb-6"><label class="block text-sm font-medium">Password</label><input type="password" id="loginPassword" required class="mt-1 w-full border-slate-300 dark:bg-slate-700 dark:border-slate-600 rounded p-2"></div>
-                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md">Login</button>
-             </form>
-             <p id="authError" class="text-red-500 text-sm mt-4 text-center"></p>
+      <div
+        id="auth-container"
+        class="hidden max-w-md mx-auto bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8 mt-10 border dark:border-slate-700"
+      >
+        <h2 class="text-2xl font-bold text-center">Admin Login</h2>
+        <form id="loginForm" class="mt-6">
+          <div class="mb-4">
+            <label class="block text-sm font-medium">Email</label
+            ><input
+              type="email"
+              id="loginEmail"
+              required
+              class="mt-1 w-full border-slate-300 dark:bg-slate-700 dark:border-slate-600 rounded p-2"
+            />
+          </div>
+          <div class="mb-6">
+            <label class="block text-sm font-medium">Password</label
+            ><input
+              type="password"
+              id="loginPassword"
+              required
+              class="mt-1 w-full border-slate-300 dark:bg-slate-700 dark:border-slate-600 rounded p-2"
+            />
+          </div>
+          <button
+            type="submit"
+            class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md"
+          >
+            Login
+          </button>
+        </form>
+        <p id="authError" class="text-red-500 text-sm mt-4 text-center"></p>
+      </div>
+
+      <div id="content-container" class="hidden">
+        <header
+          class="mb-8 flex flex-col sm:flex-row justify-between sm:items-center gap-4"
+        >
+          <div>
+            <h1
+              id="header-title"
+              class="text-3xl font-bold text-slate-900 dark:text-white"
+            >
+              Finance Dashboard
+            </h1>
+            <p
+              class="text-slate-500 dark:text-slate-400 mt-2"
+              id="welcomeMessage"
+            ></p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button
+              id="theme-toggle"
+              class="p-2 rounded-lg bg-slate-200 dark:bg-slate-700 hover:ring-2 ring-blue-400"
+            >
+              <span class="dark:hidden">🌙 Dark</span
+              ><span class="hidden dark:inline">☀️ Light</span>
+            </button>
+            <button
+              id="install-btn"
+              class="hidden p-2 rounded-lg bg-indigo-600 text-white hover:bg-teal-700 hover:ring-2 ring-teal-400 flex items-center gap-2 transition-all"
+            >
+              <span class="relative flex h-3 w-3">
+                <span
+                  class="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-100 opacity-75"
+                ></span>
+                <span
+                  class="relative inline-flex rounded-full h-3 w-3 bg-white"
+                ></span>
+              </span>
+              <span class="text-sm font-bold">Install App</span>
+            </button>
+            <button
+              id="logoutButton"
+              class="bg-red-500 text-white font-semibold py-2 px-4 rounded-md shadow-md"
+            >
+              Logout
+            </button>
+          </div>
+        </header>
+
+        <div id="dashboard-view">
+          <div class="bg-teal-600 text-white p-6 rounded-lg shadow-lg mb-8">
+            <h3 class="font-medium text-teal-100">
+              Total Society Balance (from monthly summary)
+            </h3>
+            <p id="total-society-balance" class="text-4xl font-bold mt-2">
+              ₹0.00
+            </p>
+          </div>
+          <div class="flex flex-col sm:flex-row justify-end gap-3 mb-6">
+            <button
+              id="manage-residents-btn"
+              class="bg-indigo-600 text-white py-2 px-4 rounded-md font-semibold"
+            >
+              Manage Residents
+            </button>
+            <button
+              id="open-sheet-recycle-bin-modal"
+              class="bg-slate-500 text-white py-2 px-4 rounded-md font-semibold"
+            >
+              Recycle Bin
+            </button>
+            <button
+              id="open-create-sheet-modal"
+              class="bg-blue-600 text-white py-2 px-4 rounded-md font-semibold"
+            >
+              + New Sheet
+            </button>
+          </div>
+          <div
+            id="sheets-grid"
+            class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
+          ></div>
+          <div
+            class="flex justify-between items-center mb-4 pt-6 border-t dark:border-slate-700"
+          >
+            <h2 class="text-xl font-bold">Monthly Summaries</h2>
+            <button
+              id="open-add-month-modal"
+              class="bg-green-600 text-white py-2 px-4 rounded-md text-sm font-bold"
+            >
+              + SUMMARY
+            </button>
+          </div>
+          <div
+            id="monthly-summary-grid"
+            class="grid grid-cols-1 md:grid-cols-4 gap-6"
+          ></div>
         </div>
 
-        <div id="content-container" class="hidden">
-            <header class="mb-8 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                <div>
-                    <h1 id="header-title" class="text-3xl font-bold text-slate-900 dark:text-white">Finance Dashboard</h1>
-                    <p class="text-slate-500 dark:text-slate-400 mt-2" id="welcomeMessage"></p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button id="theme-toggle" class="p-2 rounded-lg bg-slate-200 dark:bg-slate-700 hover:ring-2 ring-blue-400">
-                        <span class="dark:hidden">🌙 Dark</span><span class="hidden dark:inline">☀️ Light</span>
-                    </button>
-                    <button id="install-btn" class="hidden p-2 rounded-lg bg-indigo-600 text-white hover:bg-teal-700 hover:ring-2 ring-teal-400 flex items-center gap-2 transition-all">
-                        <span class="relative flex h-3 w-3">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-100 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
-                        </span>
-                        <span class="text-sm font-bold">Install App</span>
-                    </button>
-                    <button id="logoutButton" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-md shadow-md">Logout</button>
-                </div>
-            </header>
+        <div id="residents-view" class="hidden">
+          <button
+            id="back-to-dashboard-from-residents"
+            class="text-blue-600 dark:text-blue-400 font-semibold mb-6 flex items-center"
+          >
+            &larr; Back
+          </button>
+          <div
+            class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md border dark:border-slate-700"
+          >
+            <h2 class="text-2xl font-bold mb-6">Manage Residents</h2>
+            <form
+              id="resident-form"
+              class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end mb-8"
+            >
+              <div>
+                <label
+                  class="block text-xs font-bold mb-1 text-slate-500 uppercase"
+                  >Room No.</label
+                ><input
+                  type="text"
+                  id="r-flat"
+                  placeholder="306"
+                  required
+                  class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"
+                />
+              </div>
+              <div class="md:col-span-2">
+                <label
+                  class="block text-xs font-bold mb-1 text-slate-500 uppercase"
+                  >Owner Name</label
+                ><input
+                  type="text"
+                  id="r-name"
+                  placeholder="Mr. Chaubey"
+                  required
+                  class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"
+                />
+              </div>
+              <div>
+                <label
+                  class="block text-xs font-bold mb-1 text-slate-500 uppercase"
+                  >Amount</label
+                ><input
+                  type="number"
+                  id="r-amount"
+                  placeholder="1340"
+                  required
+                  class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"
+                />
+              </div>
+              <div>
+                <label
+                  class="block text-xs font-bold mb-1 text-slate-500 uppercase"
+                  >Status</label
+                ><select
+                  id="r-status"
+                  class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"
+                >
+                  <option value="Sold">Sold</option>
+                  <option value="Unsold">Unsold</option>
+                </select>
+              </div>
+              <div class="flex gap-2">
+                <button
+                  type="submit"
+                  id="resident-submit-btn"
+                  class="w-full bg-blue-600 text-white font-bold py-2 rounded"
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  id="cancel-edit-btn"
+                  class="hidden bg-slate-200 py-2 px-4 rounded text-black"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead
+                  class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600"
+                >
+                  <tr>
+                    <th
+                      class="p-3 text-left text-xs font-bold text-slate-500 uppercase"
+                    >
+                      Flat
+                    </th>
+                    <th
+                      class="p-3 text-left text-xs font-bold text-slate-500 uppercase"
+                    >
+                      Owner
+                    </th>
+                    <th
+                      class="p-3 text-left text-xs font-bold text-slate-500 uppercase"
+                    >
+                      Amount
+                    </th>
+                    <th
+                      class="p-3 text-right text-xs font-bold text-slate-500 uppercase"
+                    >
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="residents-table-body"
+                  class="divide-y dark:divide-slate-700"
+                ></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
 
-            <div id="dashboard-view">
-                <div class="bg-teal-600 text-white p-6 rounded-lg shadow-lg mb-8">
-                    <h3 class="font-medium text-teal-100">Total Society Balance (from monthly summary)</h3>
-                    <p id="total-society-balance" class="text-4xl font-bold mt-2">₹0.00</p>
-                </div>
-                <div class="flex flex-col sm:flex-row justify-end gap-3 mb-6">
-                    <button id="manage-residents-btn" class="bg-indigo-600 text-white py-2 px-4 rounded-md font-semibold">Manage Residents</button>
-                    <button id="open-sheet-recycle-bin-modal" class="bg-slate-500 text-white py-2 px-4 rounded-md font-semibold">Recycle Bin</button>
-                    <button id="open-create-sheet-modal" class="bg-blue-600 text-white py-2 px-4 rounded-md font-semibold">+ New Sheet</button>
-                </div>
-                <div id="sheets-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"></div>
-                <div class="flex justify-between items-center mb-4 pt-6 border-t dark:border-slate-700">
-                    <h2 class="text-xl font-bold">Monthly Summaries</h2>
-                    <button id="open-add-month-modal" class="bg-green-600 text-white py-2 px-4 rounded-md text-sm font-bold">+ SUMMARY</button>
-                </div>
-                <div id="monthly-summary-grid" class="grid grid-cols-1 md:grid-cols-4 gap-6"></div>
+        <div id="detail-view" class="hidden">
+          <div class="mb-6 flex justify-between items-center">
+            <button
+              id="back-to-dashboard-from-detail"
+              class="text-blue-600 dark:text-blue-400 font-semibold"
+            >
+              &larr; Back
+            </button>
+            <div class="flex gap-2">
+              <button
+                id="export-excel-btn"
+                class="bg-green-600 text-white font-bold py-2 px-4 rounded shadow text-xs"
+              >
+                Excel
+              </button>
+              <button
+                id="export-pdf-btn"
+                class="bg-red-600 text-white font-bold py-2 px-4 rounded shadow text-xs"
+              >
+                PDF
+              </button>
+              <button
+                id="export-image-btn"
+                class="bg-indigo-600 text-white font-bold py-2 px-4 rounded shadow text-xs"
+              >
+                Image
+              </button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-8">
+            <div class="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg">
+              <h3 class="text-blue-600 font-bold text-sm">Opening</h3>
+              <p id="opening-balance" class="text-2xl font-bold">₹0.00</p>
+            </div>
+            <div class="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg">
+              <h3 class="text-green-600 font-bold text-sm">Collected</h3>
+              <p id="total-collected" class="text-2xl font-bold">₹0.00</p>
+            </div>
+            <div class="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg">
+              <h3 class="text-red-600 font-bold text-sm">Expenses</h3>
+              <p id="total-expenses" class="text-2xl font-bold">₹0.00</p>
+            </div>
+            <div
+              class="bg-slate-50 dark:bg-slate-800 p-6 rounded-lg border dark:border-slate-700"
+            >
+              <h3 class="font-bold text-sm text-slate-600 dark:text-slate-400">
+                Closing
+              </h3>
+              <p id="closing-balance" class="text-2xl font-bold">₹0.00</p>
+            </div>
+          </div>
+          <nav
+            class="flex space-x-6 border-b dark:border-slate-700 mb-6"
+            id="detail-tabs"
+          >
+            <button
+              data-tab="status"
+              class="py-4 px-1 border-b-2 font-bold text-sm tab-active"
+            >
+              Maintenance Grid
+            </button>
+            <button
+              data-tab="collection"
+              class="py-4 px-1 border-b-2 font-bold text-sm text-gray-500"
+            >
+              Payments Log
+            </button>
+            <button
+              data-tab="expenses"
+              class="py-4 px-1 border-b-2 font-bold text-sm text-gray-500"
+            >
+              Expenses Log
+            </button>
+          </nav>
+          <div id="tab-content">
+            <div id="status-tab">
+              <div class="flex gap-2 mb-4" id="status-filters">
+                <button
+                  data-filter="all"
+                  class="bg-blue-500 text-white px-3 py-1 text-xs rounded"
+                >
+                  All
+                </button>
+                <button
+                  data-filter="pending"
+                  class="bg-gray-200 dark:bg-slate-700 px-3 py-1 text-xs rounded"
+                >
+                  Pending
+                </button>
+                <button
+                  data-filter="paid"
+                  class="bg-gray-200 dark:bg-slate-700 px-3 py-1 text-xs rounded"
+                >
+                  Paid
+                </button>
+              </div>
+              <div
+                class="bg-white dark:bg-slate-800 rounded border dark:border-slate-700 overflow-hidden"
+              >
+                <table class="w-full">
+                  <tbody
+                    id="payment-status-table"
+                    class="divide-y dark:divide-slate-700"
+                  ></tbody>
+                </table>
+              </div>
+            </div>
+            <div id="collection-tab" class="hidden">
+              <form
+                id="maintenance-form"
+                class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-slate-800 p-6 rounded border dark:border-slate-700 mb-6 shadow-sm"
+              >
+                <input
+                  type="date"
+                  id="m-date"
+                  required
+                  class="p-2 border dark:bg-slate-700 rounded"
+                />
+                <select
+                  id="m-flat"
+                  required
+                  class="p-2 border dark:bg-slate-700 rounded"
+                ></select>
+                <input
+                  type="text"
+                  id="m-name"
+                  readonly
+                  placeholder="Name"
+                  class="p-2 border bg-slate-100 dark:bg-slate-600 rounded"
+                />
+                <input
+                  type="number"
+                  id="m-amount"
+                  readonly
+                  placeholder="Amount"
+                  class="p-2 border bg-slate-100 dark:bg-slate-600 rounded"
+                />
+                <select
+                  id="m-mode"
+                  class="p-2 border dark:bg-slate-700 rounded"
+                >
+                  <option>UPI</option>
+                  <option>Cash</option>
+                </select>
+                <button
+                  type="submit"
+                  class="bg-blue-600 text-white font-bold py-2 rounded shadow-md"
+                >
+                  Log Payment
+                </button>
+              </form>
+              <div
+                class="bg-white dark:bg-slate-800 rounded shadow overflow-hidden"
+              >
+                <table class="w-full text-sm">
+                  <thead
+                    class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600"
+                  >
+                    <tr>
+                      <th class="p-3 text-left font-bold text-slate-500">
+                        Date
+                      </th>
+                      <th class="p-3 text-left font-bold text-slate-500">
+                        Flat & Owner
+                      </th>
+                      <th class="p-3 text-left font-bold text-slate-500">
+                        Amount
+                      </th>
+                      <th class="p-3 text-right font-bold text-slate-500">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    id="collection-log-table"
+                    class="divide-y dark:divide-slate-700"
+                  ></tbody>
+                </table>
+              </div>
+            </div>
+            <div id="expenses-tab" class="hidden">
+              <form
+                id="expense-form"
+                class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white dark:bg-slate-800 p-6 rounded border dark:border-slate-700 mb-6 shadow-sm"
+              >
+                <input
+                  type="date"
+                  id="e-date"
+                  required
+                  class="p-2 border dark:bg-slate-700 rounded"
+                />
+                <input
+                  type="text"
+                  id="e-desc"
+                  required
+                  placeholder="Description"
+                  class="md:col-span-2 p-2 border dark:bg-slate-700 rounded"
+                />
+                <input
+                  type="number"
+                  id="e-amount"
+                  required
+                  placeholder="Amount"
+                  class="p-2 border dark:bg-slate-700 rounded"
+                />
+                <button
+                  type="submit"
+                  class="bg-red-600 text-white font-bold py-2 rounded md:col-span-4 shadow-md"
+                >
+                  Add Expense
+                </button>
+              </form>
+              <div
+                class="bg-white dark:bg-slate-800 rounded border overflow-x-auto shadow-sm"
+              >
+                <table class="w-full text-sm min-w-[600px]">
+                  <thead
+                    class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600"
+                  >
+                    <tr>
+                      <th class="p-3 text-left font-bold text-slate-500">
+                        Date
+                      </th>
+                      <th class="p-3 text-left font-bold text-slate-500">
+                        Description
+                      </th>
+                      <th class="p-3 text-left font-bold text-slate-500">
+                        Amount
+                      </th>
+                      <th class="p-3 text-right font-bold text-slate-500">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    id="expense-log-table"
+                    class="divide-y dark:divide-slate-700"
+                  ></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="verification-view" class="hidden py-10">
+        <div
+          class="max-w-md mx-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden border dark:border-slate-700"
+        >
+          <div class="h-2 bg-teal-600"></div>
+
+          <div class="p-8">
+            <div id="verify-loading" class="text-center py-4">
+              <p class="text-slate-500 animate-pulse font-medium">
+                Verifying Receipt...
+              </p>
             </div>
 
-            <div id="residents-view" class="hidden">
-                 <button id="back-to-dashboard-from-residents" class="text-blue-600 dark:text-blue-400 font-semibold mb-6 flex items-center">&larr; Back</button>
-                 <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md border dark:border-slate-700">
-                     <h2 class="text-2xl font-bold mb-6">Manage Residents</h2>
-                     <form id="resident-form" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end mb-8">
-                         <div><label class="block text-xs font-bold mb-1 text-slate-500 uppercase">Room No.</label><input type="text" id="r-flat" placeholder="306" required class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"></div>
-                         <div class="md:col-span-2"><label class="block text-xs font-bold mb-1 text-slate-500 uppercase">Owner Name</label><input type="text" id="r-name" placeholder="Mr. Chaubey" required class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"></div>
-                         <div><label class="block text-xs font-bold mb-1 text-slate-500 uppercase">Amount</label><input type="number" id="r-amount" placeholder="1340" required class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"></div>
-                         <div><label class="block text-xs font-bold mb-1 text-slate-500 uppercase">Status</label><select id="r-status" class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"><option value="Sold">Sold</option><option value="Unsold">Unsold</option></select></div>
-                         <div class="flex gap-2">
-                             <button type="submit" id="resident-submit-btn" class="w-full bg-blue-600 text-white font-bold py-2 rounded">Add</button>
-                             <button type="button" id="cancel-edit-btn" class="hidden bg-slate-200 py-2 px-4 rounded text-black">Cancel</button>
-                         </div>
-                     </form>
-                     <div class="overflow-x-auto"><table class="w-full"><thead class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600"><tr><th class="p-3 text-left text-xs font-bold text-slate-500 uppercase">Flat</th><th class="p-3 text-left text-xs font-bold text-slate-500 uppercase">Owner</th><th class="p-3 text-left text-xs font-bold text-slate-500 uppercase">Amount</th><th class="p-3 text-right text-xs font-bold text-slate-500 uppercase">Actions</th></tr></thead><tbody id="residents-table-body" class="divide-y dark:divide-slate-700"></tbody></table></div>
-                 </div>
+            <div id="verify-content" class="hidden">
+              <div class="text-center mb-8">
+                <div
+                  class="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full mb-4"
+                >
+                  <span class="text-3xl">✅</span>
+                </div>
+                <h2
+                  class="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight"
+                >
+                  Receipt Verified
+                </h2>
+                <p
+                  class="text-slate-400 text-[10px] font-mono mt-1"
+                  id="v-hash"
+                ></p>
+              </div>
+
+              <div
+                class="space-y-px bg-slate-200 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden mb-8"
+              >
+                <div class="grid grid-cols-2 bg-white dark:bg-slate-800 p-4">
+                  <span
+                    class="text-[10px] font-bold uppercase text-slate-400 self-center"
+                    >Flat No.</span
+                  >
+                  <span
+                    id="v-flat"
+                    class="text-sm font-bold text-right dark:text-white"
+                    >-</span
+                  >
+                </div>
+                <div class="grid grid-cols-2 bg-white dark:bg-slate-800 p-4">
+                  <span
+                    class="text-[10px] font-bold uppercase text-slate-400 self-center"
+                    >Owner</span
+                  >
+                  <span
+                    id="v-name"
+                    class="text-sm text-right dark:text-slate-200"
+                    >-</span
+                  >
+                </div>
+                <div class="grid grid-cols-2 bg-white dark:bg-slate-800 p-4">
+                  <span
+                    class="text-[10px] font-bold uppercase text-slate-400 self-center"
+                    >Amount</span
+                  >
+                  <span
+                    id="v-amount"
+                    class="text-sm font-bold text-right text-teal-600"
+                    >-</span
+                  >
+                </div>
+                <div class="grid grid-cols-2 bg-white dark:bg-slate-800 p-4">
+                  <span
+                    class="text-[10px] font-bold uppercase text-slate-400 self-center"
+                    >Date</span
+                  >
+                  <span
+                    id="v-date"
+                    class="text-sm text-right dark:text-slate-200"
+                    >-</span
+                  >
+                </div>
+              </div>
+
+              <button
+                id="v-download"
+                class="w-full bg-slate-900 dark:bg-slate-100 dark:text-slate-900 text-white font-bold py-4 rounded-xl shadow-lg transition-transform active:scale-95 text-sm uppercase tracking-widest"
+              >
+                Download PDF Receipt
+              </button>
             </div>
 
-            <div id="detail-view" class="hidden">
-                 <div class="mb-6 flex justify-between items-center">
-                    <button id="back-to-dashboard-from-detail" class="text-blue-600 dark:text-blue-400 font-semibold">&larr; Back</button>
-                    <div class="flex gap-2">
-                        <button id="export-excel-btn" class="bg-green-600 text-white font-bold py-2 px-4 rounded shadow text-xs">Excel</button>
-                        <button id="export-pdf-btn" class="bg-red-600 text-white font-bold py-2 px-4 rounded shadow text-xs">PDF</button>
-                        <button id="export-image-btn" class="bg-indigo-600 text-white font-bold py-2 px-4 rounded shadow text-xs">Image</button>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg"><h3 class="text-blue-600 font-bold text-sm">Opening</h3><p id="opening-balance" class="text-2xl font-bold">₹0.00</p></div>
-                    <div class="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg"><h3 class="text-green-600 font-bold text-sm">Collected</h3><p id="total-collected" class="text-2xl font-bold">₹0.00</p></div>
-                    <div class="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg"><h3 class="text-red-600 font-bold text-sm">Expenses</h3><p id="total-expenses" class="text-2xl font-bold">₹0.00</p></div>
-                    <div class="bg-slate-50 dark:bg-slate-800 p-6 rounded-lg border dark:border-slate-700"><h3 class="font-bold text-sm text-slate-600 dark:text-slate-400">Closing</h3><p id="closing-balance" class="text-2xl font-bold">₹0.00</p></div>
-                </div>
-                <nav class="flex space-x-6 border-b dark:border-slate-700 mb-6" id="detail-tabs">
-                    <button data-tab="status" class="py-4 px-1 border-b-2 font-bold text-sm tab-active">Maintenance Grid</button>
-                    <button data-tab="collection" class="py-4 px-1 border-b-2 font-bold text-sm text-gray-500">Payments Log</button>
-                    <button data-tab="expenses" class="py-4 px-1 border-b-2 font-bold text-sm text-gray-500">Expenses Log</button>
-                </nav>
-                <div id="tab-content">
-                    <div id="status-tab">
-                        <div class="flex gap-2 mb-4" id="status-filters">
-                             <button data-filter="all" class="bg-blue-500 text-white px-3 py-1 text-xs rounded">All</button>
-                             <button data-filter="pending" class="bg-gray-200 dark:bg-slate-700 px-3 py-1 text-xs rounded">Pending</button>
-                             <button data-filter="paid" class="bg-gray-200 dark:bg-slate-700 px-3 py-1 text-xs rounded">Paid</button>
-                        </div>
-                        <div class="bg-white dark:bg-slate-800 rounded border dark:border-slate-700 overflow-hidden"><table class="w-full"><tbody id="payment-status-table" class="divide-y dark:divide-slate-700"></tbody></table></div>
-                    </div>
-                    <div id="collection-tab" class="hidden">
-                        <form id="maintenance-form" class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-slate-800 p-6 rounded border dark:border-slate-700 mb-6 shadow-sm">
-                            <input type="date" id="m-date" required class="p-2 border dark:bg-slate-700 rounded">
-                            <select id="m-flat" required class="p-2 border dark:bg-slate-700 rounded"></select>
-                            <input type="text" id="m-name" readonly placeholder="Name" class="p-2 border bg-slate-100 dark:bg-slate-600 rounded">
-                            <input type="number" id="m-amount" readonly placeholder="Amount" class="p-2 border bg-slate-100 dark:bg-slate-600 rounded">
-                            <select id="m-mode" class="p-2 border dark:bg-slate-700 rounded"><option>UPI</option><option>Cash</option></select>
-                            <button type="submit" class="bg-blue-600 text-white font-bold py-2 rounded shadow-md">Log Payment</button>
-                        </form>
-                        <div class="bg-white dark:bg-slate-800 rounded shadow overflow-hidden"><table class="w-full text-sm"><thead class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600"><tr><th class="p-3 text-left font-bold text-slate-500">Date</th><th class="p-3 text-left font-bold text-slate-500">Flat & Owner</th><th class="p-3 text-left font-bold text-slate-500">Amount</th><th class="p-3 text-right font-bold text-slate-500">Action</th></tr></thead><tbody id="collection-log-table" class="divide-y dark:divide-slate-700"></tbody></table></div>
-                    </div>
-                    <div id="expenses-tab" class="hidden">
-                        <form id="expense-form" class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white dark:bg-slate-800 p-6 rounded border dark:border-slate-700 mb-6 shadow-sm">
-                            <input type="date" id="e-date" required class="p-2 border dark:bg-slate-700 rounded">
-                            <input type="text" id="e-desc" required placeholder="Description" class="md:col-span-2 p-2 border dark:bg-slate-700 rounded">
-                            <input type="number" id="e-amount" required placeholder="Amount" class="p-2 border dark:bg-slate-700 rounded">
-                            <button type="submit" class="bg-red-600 text-white font-bold py-2 rounded md:col-span-4 shadow-md">Add Expense</button>
-                        </form>
-                        <div class="bg-white dark:bg-slate-800 rounded border overflow-x-auto shadow-sm">
-                            <table class="w-full text-sm min-w-[600px]">
-                                <thead class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600">
-                                    <tr>
-                                        <th class="p-3 text-left font-bold text-slate-500">Date</th>
-                                        <th class="p-3 text-left font-bold text-slate-500">Description</th>
-                                        <th class="p-3 text-left font-bold text-slate-500">Amount</th>
-                                        <th class="p-3 text-right font-bold text-slate-500">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="expense-log-table" class="divide-y dark:divide-slate-700"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+            <div id="verify-error" class="hidden text-center py-6">
+              <span class="text-5xl block mb-4">⚠️</span>
+              <h2 class="text-xl font-bold text-red-600">Invalid Receipt</h2>
+              <p class="text-slate-500 text-sm mt-2">
+                This record could not be found.
+              </p>
+              <a
+                href="/"
+                class="inline-block mt-6 text-blue-600 font-bold text-sm"
+                >Return to Login</a
+              >
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="receipt-print-area" class="hidden" style="width: 780px; background: #ffffff; color: #1e293b; padding: 30px 50px; font-family: 'Inter', sans-serif; border: 1px solid #e2e8f0; position: relative; min-height: 1000px;">
+    
+    <div style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-40deg); font-size: 80px; color: rgba(0,0,0,0.012); pointer-events: none; white-space: nowrap; font-weight: 900; text-transform: uppercase;">Dinkar Elite</div>
+
+    <div style="position: relative; z-index: 1;">
+        <div style="text-align: center; font-weight: 800; background: #f8fafc; border: 1px solid #cbd5e1; width: 130px; margin: 0 auto 10px auto; font-size: 10px; padding: 4px; color: #64748b; border-radius: 6px; text-transform: uppercase;">Digital Receipt</div>
+        
+        <div style="border: 2px solid #334155; border-radius: 12px; padding: 25px; text-align: center; margin-bottom: 25px; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
+            <h1 style="font-size: 24px; font-weight: 900; margin: 0; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">Dinkar Elite A Wing Co-op. Housing Society Ltd.</h1>
+            <p style="font-size: 11px; margin: 8px 0; font-weight: 700; color: #475569;">REG. NO.:- TNA KLN/HSG/(TC)/37128/2024-25/Year 2025</p>
+            <p style="font-size: 10px; margin: 0; line-height: 1.6; color: #64748b; font-weight: 400;">
+              Survey No.7, Hissa No.2 & Survey No.16, Hissa No.3, Near Chetna School Bus Stop,<br>
+             Pisavli Pipeline Road, Opp. Don Bosco School, Shri. Malang Rd, Pisavli, Kalyan (E)-421306
+            </p>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; font-size: 14px; color: #334155;">
+            <div style="line-height: 2.5;">
+                <div>Receipt No. : <span id="p-receipt-no" style="font-weight: 800; padding: 0 10px 2px 10px; border-bottom: 1.5px solid #cbd5e1; min-width: 150px; display: inline-block; color: #1e40af;">-</span></div>
+                <div>Date : <span id="p-date" style="font-weight: 800; padding: 0 10px 2px 10px; border-bottom: 1.5px solid #cbd5e1; min-width: 120px; display: inline-block; color: #1e40af;">-</span></div>
+            </div>
+            <div style="text-align: center; background: #ffffff; padding: 6px; border: 1px solid #f1f5f9; border-radius: 8px;">
+                <div id="p-qr-code" style="width: 70px; height: 70px;"></div>
+                <p style="font-size: 7px; color: #94a3b8; margin-top: 4px; font-weight: 800;">VERIFY</p>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 15px; font-size: 14px; line-height: 2.5;">
+            Received with thanks from M/s./Mr./Mrs: <span id="p-name" style="font-weight: 800; border-bottom: 1.5px solid #cbd5e1; display: inline-block; width: 480px; padding: 0 10px; color: #0f172a; vertical-align: bottom;">-</span>
+            <div style="margin-top: 5px;">
+                Flat No. <span id="p-flat" style="font-weight: 800; border-bottom: 1.5px solid #cbd5e1; padding: 0 15px; display: inline-block; min-width: 70px; text-align: center; color: #0f172a; vertical-align: bottom;">-</span> For the month of <span id="p-month" style="font-weight: 800; border-bottom: 1.5px solid #cbd5e1; width: 330px; display: inline-block; padding: 0 10px; color: #0f172a; vertical-align: bottom;">-</span>
+            </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: separate; border-spacing: 0; border: 2px solid #334155; border-radius: 12px; overflow: hidden;">
+            <thead style="font-size: 11px; font-weight: 900; background: #f1f5f9; text-transform: uppercase;">
+                <tr><th style="border-right: 2px solid #334155; border-bottom: 2px solid #334155; padding: 10px; width: 50px;">S.N.</th><th style="border-right: 2px solid #334155; border-bottom: 2px solid #334155; padding: 10px; text-align: center;">Particulars</th><th style="border-bottom: 2px solid #334155; padding: 10px; width: 180px; text-align: center;">Amount (₹)</th></tr>
+            </thead>
+            <tbody style="font-size: 13px; color: #1e293b;">
+                <tr style="background: #ffffff;"> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; text-align: center; padding: 6px;">1</td> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; padding: 6px 15px;">Service Charges</td> <td style="border-bottom: 1px solid #f1f5f9; text-align: right; padding: 6px 20px; color: #94a3b8;">—</td> </tr>
+                <tr style="background: #fcfcfc;"> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; text-align: center; padding: 6px;">2</td> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; padding: 6px 15px;">Sinking Fund</td> <td style="border-bottom: 1px solid #f1f5f9; text-align: right; padding: 6px 20px; color: #94a3b8;">—</td> </tr>
+                <tr style="background: #ffffff;"> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; text-align: center; padding: 6px;">3</td> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; padding: 6px 15px; font-weight: 800; color: #0f172a;">Repair & Maintenance Fund</td> <td id="p-main-amount" style="border-bottom: 1px solid #f1f5f9; text-align: right; padding: 6px 20px; font-weight: 800; color: #0f172a;">-</td> </tr>
+                <tr style="background: #fcfcfc;"> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; text-align: center; padding: 6px;">4</td> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; padding: 6px 15px;">Insurance Premium</td> <td style="border-bottom: 1px solid #f1f5f9; text-align: right; padding: 6px 20px; color: #94a3b8;">—</td> </tr>
+                <tr style="background: #ffffff;"> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; text-align: center; padding: 6px;">5</td> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; padding: 6px 15px;">Non-Occupancy Charges</td> <td style="border-bottom: 1px solid #f1f5f9; text-align: right; padding: 6px 20px; color: #94a3b8;">—</td> </tr>
+                <tr style="background: #fcfcfc;"> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; text-align: center; padding: 8px;">6</td> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; padding: 8px 15px;">Late Fees</td> <td style="border-bottom: 1px solid #f1f5f9; text-align: right; padding: 8px 20px; color: #94a3b8;">—</td> </tr>
+                <tr style="background: #ffffff;"> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; text-align: center; padding: 8px;">7</td> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; padding: 8px 15px;">Education & Training Fund</td> <td style="border-bottom: 1px solid #f1f5f9; text-align: right; padding: 8px 20px; color: #94a3b8;">—</td> </tr>
+                <tr style="background: #fcfcfc;"> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; text-align: center; padding: 8px;">8</td> <td style="border-right: 2px solid #334155; border-bottom: 1px solid #f1f5f9; padding: 8px 15px;">Interest@% p.a. on Rs.</td> <td style="border-bottom: 1px solid #f1f5f9; text-align: right; padding: 8px 20px; color: #94a3b8;">—</td> </tr>
+                <tr style="background: #ffffff;"> <td style="border-right: 2px solid #334155; border-bottom: 2px solid #334155; text-align: center; padding: 8px;">9</td> <td style="border-right: 2px solid #334155; border-bottom: 2px solid #334155; padding: 8px 15px;">Any Other</td> <td style="border-bottom: 2px solid #334155; text-align: right; padding: 8px 20px; color: #94a3b8;">—</td> </tr>
+                <tr style="font-weight: 900; background: #f8fafc; color: #0f172a;">
+                    <td colspan="2" style="border-right: 2px solid #334155; text-align: right; padding: 15px; text-transform: uppercase; font-size: 14px;">Grand Total</td>
+                    <td id="p-total-amount" style="text-align: right; padding: 15px 20px; color: #1e40af; font-size: 18px;">-</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div style="margin-top: 20px; font-size: 14px; line-height: 2.2;">
+            Received Rupees: <span id="p-words" style="font-weight: 800; border-bottom: 1.5px solid #cbd5e1; display: inline-block; min-width: 550px; padding: 0 10px; color: #0f172a; vertical-align: bottom;">-</span>
+        </div>
+
+        <div style="margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 10px;">
+            <div style="text-align: center; width: 160px; font-size: 11px; font-weight: 800; border-top: 2px solid #334155; padding-top: 8px;">Chairman</div>
+            <div style="text-align: center; width: 160px; font-size: 11px; font-weight: 800; border-top: 2px solid #334155; padding-top: 8px;">Secretary</div>
+            <div style="text-align: center; width: 160px; font-size: 11px; font-weight: 800; border-top: 2px solid #334155; padding-top: 8px;">Treasurer</div>
+        </div>
+
+        <div style="margin-top: 30px; text-align: center;">
+            <p style="font-size: 8px; color: #cbd5e1;">Ref ID: <span id="p-hash-bottom" style="font-family: monospace;">-</span></p>
         </div>
     </div>
+</div>
+    </div>
 
-    <div id="toast" style="display: none; position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 12px; color: white; font-weight: 500; z-index: 10000; transition: all 0.5s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px;">
-        <span id="toast-icon" style="font-size: 1.2rem;"></span>
-        <span id="toast-message" style="font-family: 'Inter', sans-serif;"></span>
+    <div
+      id="toast"
+      style="
+        display: none;
+        position: fixed;
+        bottom: -100px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 12px 24px;
+        border-radius: 12px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        transition: all 0.5s ease;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      "
+    >
+      <span id="toast-icon" style="font-size: 1.2rem"></span>
+      <span
+        id="toast-message"
+        style="font-family: &quot;Inter&quot;, sans-serif"
+      ></span>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script type="module" src="js/app.js"></script>
     <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('Service Worker: Registered (Scope: ' + reg.scope + ')'))
-                .catch(err => console.log('Service Worker: Registration Failed', err));
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("sw.js")
+            .then((reg) =>
+              console.log(
+                "Service Worker: Registered (Scope: " + reg.scope + ")",
+              ),
+            )
+            .catch((err) =>
+              console.log("Service Worker: Registration Failed", err),
+            );
         });
-    }
+      }
     </script>
-</body>
+  </body>
 </html>
