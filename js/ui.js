@@ -130,8 +130,20 @@ export const renderCollections = (c) => {
     body.innerHTML = '';
     c.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(x => {
         const row = body.insertRow();
-        row.innerHTML = `<td class="p-3 dark:text-slate-300">${x.date}</td><td class="p-3 dark:text-slate-200">${x.flatNo} - ${x.ownerName}</td><td class="p-3 font-bold text-green-600">${formatCurrency(x.amount)}</td>
-        <td class="p-3 text-right"><button data-id="${x.id}" class="text-red-500 text-[10px] font-bold delete-collection-btn uppercase">Delete</button></td>`;
+        row.innerHTML = `
+            <td class="p-3 dark:text-slate-300">${x.date}</td>
+            <td class="p-3 dark:text-slate-200">${x.flatNo} - ${x.ownerName}</td>
+            <td class="p-3 font-bold text-green-600">${formatCurrency(x.amount)}</td>
+            <td class="p-3 text-right flex justify-end items-center gap-3">
+                <button data-id="${x.id}" 
+                        data-name="${x.ownerName}" 
+                        data-flat="${x.flatNo}" 
+                        data-amount="${x.amount}" 
+                        class="text-teal-600 font-bold text-[10px] share-receipt-btn uppercase border border-teal-600 px-2 py-1 rounded hover:bg-teal-600 hover:text-white transition-all">
+                    Share
+                </button>
+                <button data-id="${x.id}" class="text-red-500 text-[10px] font-bold delete-collection-btn uppercase">Delete</button>
+            </td>`;
     });
 };
 
