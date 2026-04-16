@@ -224,3 +224,37 @@ document.getElementById('loginForm')?.addEventListener('submit', async e => {
     e.preventDefault();
     try { await signInWithEmailAndPassword(auth, document.getElementById('loginEmail').value, document.getElementById('loginPassword').value); } catch (err) { document.getElementById('authError').textContent = "Login Failed"; }
 });
+
+let deferredPrompt;
+const installBtn = document.getElementById('install-btn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Browser ka default bottom bar rokein
+    e.preventDefault();
+    // Event save karein
+    deferredPrompt = e;
+    // Button dikhayein (hidden class hatayein)
+    installBtn.classList.remove('hidden');
+    console.log('PWA: Ready to install');
+});
+
+installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    
+    // Install prompt dikhayein
+    deferredPrompt.prompt();
+    
+    // User response ka intezar karein
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response: ${outcome}`);
+    
+    // Use hone ke baad reset karein
+    deferredPrompt = null;
+    installBtn.classList.add('hidden');
+});
+
+// Agar app install ho jaye toh button gayab kar dein
+window.addEventListener('appinstalled', () => {
+    console.log('PWA: App Installed Successfully');
+    installBtn.classList.add('hidden');
+});
