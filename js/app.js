@@ -140,27 +140,26 @@ async function handlePublicVerification(receiptId) {
       document.getElementById("p-hash-bottom").textContent = receiptId;
 
       // --- QR CODE GENERATION (The Missing Piece) ---
-      const qrContainer = document.getElementById("p-qr-code");
-      if (qrContainer) {
-        qrContainer.innerHTML = ""; // Purana saaf karein
+const qrContainer = document.getElementById('p-qr-code');
+if (qrContainer) {
+    qrContainer.innerHTML = ''; 
+    
+    const cleanBaseUrl = window.location.href.split('?')[0].split('#')[0];
+    const finalVerificationLink = `${cleanBaseUrl}?receiptId=${receiptId}`;
 
-        // Hidden div mein QR generate karne ke liye thoda wait karna behtar hai
-        setTimeout(() => {
-          try {
-            new QRCode(qrContainer, {
-              text: verificationLink,
-              width: 70, // Size adjusted for header
-              height: 70,
-              colorDark: "#1e40af", // Premium Navy Blue
-              colorLight: "#ffffff",
-              correctLevel: QRCode.CorrectLevel.M,
-            });
-            console.log("QR Code Generated Successfully");
-          } catch (err) {
-            console.error("QR Generation Error:", err);
-          }
-        }, 100); // 100ms ka delay
-      }
+    console.log("QR Link Generated:", finalVerificationLink);
+
+    setTimeout(() => {
+        new QRCode(qrContainer, {
+            text: finalVerificationLink, // Ab ye ekdum clean link hai
+            width: 80,
+            height: 80,
+            colorDark : "#1e40af",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    }, 150);
+}
 
       // Card UI Update
       document.getElementById("v-flat").textContent = data.flatNo;
@@ -435,8 +434,8 @@ document.addEventListener("click", async (e) => {
     const name = btn.dataset.name;
     const flat = btn.dataset.flat;
     const amount = UI.formatCurrency(btn.dataset.amount);
-    const baseUrl = window.location.origin + window.location.pathname;
-    const verificationLink = `${baseUrl}?receiptId=${id}`;
+    const cleanUrl = window.location.origin + window.location.pathname;
+    const verificationLink = `${cleanUrl}?receiptId=${id}`;
     const message = `*Dinkar Elite Maintenance Receipt*%0A%0AHello ${name} (Flat ${flat}), your maintenance payment of ${amount} has been successfully recorded.%0A%0AYou can view and download your digital receipt here:%0A${verificationLink}%0A%0A_This is an automated message from Society Finance Manager._`;
     window.open(`https://wa.me/?text=${message}`, "_blank");
     return;
