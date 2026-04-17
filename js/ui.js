@@ -91,9 +91,15 @@ export const renderResidentsTable = (res) => {
     body.innerHTML = '';
     res.sort((a,b) => a.flatNo.localeCompare(b.flatNo)).forEach(r => {
         const row = body.insertRow();
-        row.innerHTML = `<td class="p-3 font-bold dark:text-white">${r.flatNo}</td><td class="p-3 dark:text-slate-300">${r.ownerName}</td><td class="p-3 dark:text-slate-300">${formatCurrency(r.maintAmount)}</td>
-        <td class="p-3 text-right"><button data-id="${r.id}" class="text-blue-600 font-bold text-xs edit-resident-btn uppercase">Edit</button>
-        <button data-id="${r.id}" class="text-red-500 font-bold text-xs delete-resident-btn ml-3 uppercase">Delete</button></td>`;
+        row.innerHTML = `
+            <td class="p-3 font-bold dark:text-white">${r.flatNo}</td>
+            <td class="p-3 dark:text-slate-300">${r.ownerName}</td>
+            <td class="p-3 dark:text-slate-400 text-xs">${r.phone || "-"}</td> 
+            <td class="p-3 dark:text-slate-300">${formatCurrency(r.maintAmount)}</td>
+            <td class="p-3 text-right">
+                <button data-id="${r.id}" class="text-blue-600 font-bold text-xs edit-resident-btn uppercase">Edit</button>
+                <button data-id="${r.id}" class="text-red-500 font-bold text-xs delete-resident-btn ml-3 uppercase">Delete</button>
+            </td>`;
     });
 };
 
