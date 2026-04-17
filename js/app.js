@@ -235,11 +235,13 @@ document.getElementById('v-download')?.addEventListener('click', async () => {
 
 // --- VIEW MANAGEMENT ---
 function renderView(viewId) {
-  if (publicReceiptId) return;
-  ["dashboard-view", "residents-view", "detail-view"].forEach((v) => {
-    const el = document.getElementById(v);
-    if (el) el.classList.toggle("hidden", v !== viewId);
-  });
+    // CRITICAL: Agar publicReceiptId hai, toh views switch karna STRICTLY forbidden hai
+    if (new URLSearchParams(window.location.search).get('receiptId')) return;
+
+    ['dashboard-view', 'residents-view', 'detail-view'].forEach(v => {
+        const el = document.getElementById(v); 
+        if (el) el.classList.toggle('hidden', v !== viewId);
+    });
 }
 function navigateTo(viewId) {
   history.pushState({ viewId }, "", `#${viewId}`);
@@ -251,24 +253,26 @@ window.addEventListener("popstate", (e) => {
 });
 
 // --- AUTH ---
-onAuthStateChanged(auth, (user) => {
-  if (publicReceiptId) {
-    handlePublicVerification(publicReceiptId);
-    return;
-  }
-  document.getElementById("loading").style.display = "none";
-  if (user) {
-    document.getElementById("auth-container").classList.add("hidden");
-    document.getElementById("content-container").classList.remove("hidden");
-    document.getElementById("welcomeMessage").textContent =
-      `Admin: ${user.email}`;
-    history.replaceState({ viewId: "dashboard-view" }, "", "#dashboard-view");
-    renderView("dashboard-view");
-    initGlobal();
-  } else {
-    document.getElementById("auth-container").classList.remove("hidden");
-    document.getElementById("content-container").classList.add("hidden");
-  }
+onAuthStateChanged(auth, user => {
+    const currentId = new URLSearchParams(window.location.search).get('receiptId');
+
+    if (currentId) {
+        handlePublicVerification(currentId);
+        return; // Yahan se exit, aage kuch mat karo
+    }
+
+    document.getElementById('loading').style.display = 'none';
+    if (user) {
+        // Admin logic hamesha tabhi chalega jab receiptId NAHI ho
+        document.getElementById('auth-container').classList.add('hidden');
+        document.getElementById('content-container').classList.remove('hidden');
+        renderView('dashboard-view');
+        initGlobal();
+    } else {
+        // Login screen dikhao
+        document.getElementById('auth-container').classList.remove('hidden');
+        document.getElementById('content-container').classList.add('hidden');
+    }
 });
 
 function initGlobal() {
