@@ -32,7 +32,7 @@ let state = {
 
 // --- PUBLIC VERIFICATION LOGIC (Phase 6) ---
 const urlParams = new URLSearchParams(window.location.search);
-const publicReceiptId = urlParams.get("receiptId");
+let publicReceiptId = urlParams.get('receiptId');
 
 // Amount to Words Function (Indian Numbering System)
 function numberToWords(num) {
@@ -99,87 +99,86 @@ function numberToWords(num) {
 }
 
 async function handlePublicVerification(receiptId) {
-  document.getElementById("loading").style.display = "none";
-  document.getElementById("auth-container").classList.add("hidden");
-  document.getElementById("content-container").classList.add("hidden");
-  document.getElementById("verification-view").classList.remove("hidden");
+    // 1. Force Clean ID (Extra slash ya space hatane ke liye)
+    const cleanId = receiptId.replace(/\/$/, "").trim();
 
-  try {
-    const docRef = doc(db, "maintenance", receiptId);
-    const docSnap = await getDoc(docRef);
+    // UI Initial State: Loading dikhao, baaki sab chhupao
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("auth-container").classList.add("hidden");
+    document.getElementById("content-container").classList.add("hidden");
+    document.getElementById("verification-view").classList.remove("hidden");
+    document.getElementById("verify-loading").classList.remove("hidden");
+    document.getElementById("verify-content").classList.add("hidden");
+    document.getElementById("verify-error").classList.add("hidden");
 
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      // Asli Verification Link taiyar karein
-      const baseUrl = window.location.origin + window.location.pathname;
-      const verificationLink = `${baseUrl}?receiptId=${receiptId}`;
+    try {
+        // 2. Firestore fetch with sanitized ID
+        const docRef = doc(db, "maintenance", cleanId);
+        const docSnap = await getDoc(docRef);
 
-      let sheetName = "Maintenance";
-      if (data.sheetId) {
-        const sheetSnap = await getDoc(doc(db, "expense_sheets", data.sheetId));
-        if (sheetSnap.exists()) sheetName = sheetSnap.data().name;
-      }
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            
+            // 3. Clean Base URL Logic for QR/Sharing
+            const cleanBaseUrl = window.location.origin + window.location.pathname;
+            const finalVerificationLink = `${cleanBaseUrl}?receiptId=${cleanId}`;
 
-      // --- TEMPLATE POPULATION ---
-      document.getElementById("p-receipt-no").textContent =
-        data.receiptNo || "-";
-      document.getElementById("p-date").textContent = data.date || "-";
-      document.getElementById("p-name").textContent = data.ownerName || "-";
-      document.getElementById("p-flat").textContent = data.flatNo || "-";
-      document.getElementById("p-month").textContent = sheetName;
-      document.getElementById("p-main-amount").textContent = UI.formatCurrency(
-        data.amount,
-      );
-      document.getElementById("p-total-amount").textContent = UI.formatCurrency(
-        data.amount,
-      );
+            // Sheet Name fetch karein
+            let sheetName = "Maintenance";
+            if (data.sheetId) {
+                const sheetSnap = await getDoc(doc(db, "expense_sheets", data.sheetId));
+                if (sheetSnap.exists()) sheetName = sheetSnap.data().name;
+            }
 
-      const words = numberToWords(data.amount);
-      document.getElementById("p-words").textContent =
-        words.charAt(0).toUpperCase() + words.slice(1);
-      document.getElementById("p-hash-bottom").textContent = receiptId;
+            // --- A. PREMIUM PDF TEMPLATE POPULATION (For Download) ---
+            document.getElementById("p-receipt-no").textContent = data.receiptNo || "-";
+            document.getElementById("p-date").textContent = data.date || "-";
+            document.getElementById("p-name").textContent = data.ownerName || "-";
+            document.getElementById("p-flat").textContent = data.flatNo || "-";
+            document.getElementById("p-month").textContent = sheetName;
+            document.getElementById("p-main-amount").textContent = UI.formatCurrency(data.amount);
+            document.getElementById("p-total-amount").textContent = UI.formatCurrency(data.amount);
 
-      // --- QR CODE GENERATION (The Missing Piece) ---
-const qrContainer = document.getElementById('p-qr-code');
-if (qrContainer) {
-    qrContainer.innerHTML = ''; 
-    
-    const cleanBaseUrl = window.location.href.split('?')[0].split('#')[0];
-    const finalVerificationLink = `${cleanBaseUrl}?receiptId=${receiptId}`;
+            const words = numberToWords(data.amount);
+            document.getElementById("p-words").textContent = words.charAt(0).toUpperCase() + words.slice(1);
+            document.getElementById("p-hash-bottom").textContent = cleanId;
 
-    console.log("QR Link Generated:", finalVerificationLink);
+            // --- B. CARD UI UPDATE (For Screen View) ---
+            document.getElementById("v-flat").textContent = data.flatNo || "-";
+            document.getElementById("v-name").textContent = data.ownerName || "-";
+            document.getElementById("v-amount").textContent = UI.formatCurrency(data.amount);
+            document.getElementById("v-date").textContent = data.date || "-";
+            document.getElementById("v-hash").textContent = `ID: ${cleanId}`;
 
-    setTimeout(() => {
-        new QRCode(qrContainer, {
-            text: finalVerificationLink, // Ab ye ekdum clean link hai
-            width: 80,
-            height: 80,
-            colorDark : "#1e40af",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
-        });
-    }, 150);
-}
+            // --- C. QR CODE GENERATION ---
+            const qrContainer = document.getElementById('p-qr-code');
+            if (qrContainer) {
+                qrContainer.innerHTML = ''; 
+                setTimeout(() => {
+                    new QRCode(qrContainer, {
+                        text: finalVerificationLink, 
+                        width: 80,
+                        height: 80,
+                        colorDark : "#1e40af",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.H
+                    });
+                }, 150);
+            }
 
-      // Card UI Update
-      document.getElementById("v-flat").textContent = data.flatNo;
-      document.getElementById("v-name").textContent = data.ownerName;
-      document.getElementById("v-amount").textContent = UI.formatCurrency(
-        data.amount,
-      );
-      document.getElementById("v-date").textContent = data.date;
-      document.getElementById("v-hash").textContent = `ID: ${receiptId}`;
+            // Success: Switch visibility from loading to content
+            document.getElementById("verify-loading").classList.add("hidden");
+            document.getElementById("verify-content").classList.remove("hidden");
 
-      document.getElementById("verify-loading").classList.add("hidden");
-      document.getElementById("verify-content").classList.remove("hidden");
-    } else {
-      throw new Error("Record not found");
+        } else {
+            console.error("Document not found for ID:", cleanId);
+            throw new Error("Record not found");
+        }
+    } catch (error) {
+        console.error("Verification error:", error);
+        document.getElementById("verify-loading").classList.add("hidden");
+        document.getElementById("verify-error").classList.remove("hidden");
     }
-  } catch (error) {
-    console.error("Verification error:", error);
-    document.getElementById("verify-loading").classList.add("hidden");
-    document.getElementById("verify-error").classList.remove("hidden");
-  }
 }
 
 // PDF Download Button Logic (Fixed for full capture)
