@@ -207,7 +207,7 @@
           ></div>
         </div>
 
-        <div id="residents-view" class="hidden">
+<div id="residents-view" class="hidden">
           <button
             id="back-to-dashboard-from-residents"
             class="text-blue-600 dark:text-blue-400 font-semibold mb-6 flex items-center"
@@ -218,107 +218,67 @@
             class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md border dark:border-slate-700"
           >
             <h2 class="text-2xl font-bold mb-6">Manage Residents</h2>
+            
             <form
               id="resident-form"
-              class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end mb-8"
+              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-8 gap-4 items-end mb-8"
             >
               <div>
-                <label
-                  class="block text-xs font-bold mb-1 text-slate-500 uppercase"
-                  >Room No.</label
-                ><input
-                  type="text"
-                  id="r-flat"
-                  placeholder="306"
-                  required
-                  class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"
-                />
+                <label class="block text-xs font-bold mb-1 text-slate-500 uppercase">Room No.</label>
+                <input type="text" id="r-flat" placeholder="306" required
+                  class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white" />
               </div>
-              <div class="md:col-span-2">
-                <label
-                  class="block text-xs font-bold mb-1 text-slate-500 uppercase"
-                  >Owner Name</label
-                ><input
-                  type="text"
-                  id="r-name"
-                  placeholder="Mr. Chaubey"
-                  required
-                  class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"
-                />
+
+              <div class="lg:col-span-2">
+                <label class="block text-xs font-bold mb-1 text-slate-500 uppercase">Owner Name</label>
+                <input type="text" id="r-name" placeholder="Mr. Chaubey" required
+                  class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white" />
               </div>
+
+              <div class="lg:col-span-2">
+                <label class="block text-xs font-bold mb-1 text-slate-500 uppercase">WhatsApp Number</label>
+                <input type="tel" id="r-phone" placeholder="9876543210"
+                  class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white" />
+              </div>
+
               <div>
-                <label
-                  class="block text-xs font-bold mb-1 text-slate-500 uppercase"
-                  >Amount</label
-                ><input
-                  type="number"
-                  id="r-amount"
-                  placeholder="1340"
-                  required
-                  class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"
-                />
+                <label class="block text-xs font-bold mb-1 text-slate-500 uppercase">Amount</label>
+                <input type="number" id="r-amount" placeholder="1340" required
+                  class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white" />
               </div>
+
               <div>
-                <label
-                  class="block text-xs font-bold mb-1 text-slate-500 uppercase"
-                  >Status</label
-                ><select
-                  id="r-status"
-                  class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white"
-                >
+                <label class="block text-xs font-bold mb-1 text-slate-500 uppercase">Status</label>
+                <select id="r-status" class="w-full border p-2 dark:bg-slate-700 rounded dark:text-white">
                   <option value="Sold">Sold</option>
                   <option value="Unsold">Unsold</option>
                 </select>
               </div>
+
               <div class="flex gap-2">
-                <button
-                  type="submit"
-                  id="resident-submit-btn"
-                  class="w-full bg-blue-600 text-white font-bold py-2 rounded"
-                >
+                <button type="submit" id="resident-submit-btn"
+                  class="w-full bg-blue-600 text-white font-bold py-2 rounded">
                   Add
                 </button>
-                <button
-                  type="button"
-                  id="cancel-edit-btn"
-                  class="hidden bg-slate-200 py-2 px-4 rounded text-black"
-                >
+                <button type="button" id="cancel-edit-btn"
+                  class="hidden bg-slate-200 py-2 px-4 rounded text-black">
                   Cancel
                 </button>
               </div>
             </form>
+
             <div class="overflow-x-auto">
               <table class="w-full">
-                <thead
-                  class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600"
-                >
+                <thead class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600">
                   <tr>
-                    <th
-                      class="p-3 text-left text-xs font-bold text-slate-500 uppercase"
-                    >
-                      Flat
-                    </th>
-                    <th
-                      class="p-3 text-left text-xs font-bold text-slate-500 uppercase"
-                    >
-                      Owner
-                    </th>
-                    <th
-                      class="p-3 text-left text-xs font-bold text-slate-500 uppercase"
-                    >
-                      Amount
-                    </th>
-                    <th
-                      class="p-3 text-right text-xs font-bold text-slate-500 uppercase"
-                    >
-                      Actions
-                    </th>
+                    <th class="p-3 text-left text-xs font-bold text-slate-500 uppercase">Flat</th>
+                    <th class="p-3 text-left text-xs font-bold text-slate-500 uppercase">Owner</th>
+                    <th class="p-3 text-left text-xs font-bold text-slate-500 uppercase">WhatsApp</th> <th class="p-3 text-left text-xs font-bold text-slate-500 uppercase">Amount</th>
+                    <th class="p-3 text-right text-xs font-bold text-slate-500 uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody
-                  id="residents-table-body"
-                  class="divide-y dark:divide-slate-700"
-                ></tbody>
+                <tbody id="residents-table-body" class="divide-y dark:divide-slate-700">
+                    </tbody>
               </table>
             </div>
           </div>

@@ -431,16 +431,32 @@ document.addEventListener("click", async (e) => {
   }
 
   // --- WHATSAPP RECEIPT SHARING ---
+  // --- UPDATED SMART WHATSAPP SHARING ---
   if (t.closest(".share-receipt-btn")) {
     const btn = t.closest(".share-receipt-btn");
     const id = btn.dataset.id;
     const name = btn.dataset.name;
     const flat = btn.dataset.flat;
     const amount = UI.formatCurrency(btn.dataset.amount);
+
+    // 1. Database se is flat ka saved number nikalo
+    const resident = state.residents.find(r => r.flatNo === flat);
+    const phone = resident ? resident.phone : "";
+
     const cleanUrl = window.location.origin + window.location.pathname;
     const verificationLink = `${cleanUrl}?receiptId=${id}`;
-    const message = `*Dinkar Elite Maintenance Receipt*%0A%0AHello ${name} (Flat ${flat}), your maintenance payment of ${amount} has been successfully recorded.%0A%0AYou can view and download your digital receipt here:%0A${verificationLink}%0A%0A_This is an automated message from Society Finance Manager._`;
-    window.open(`https://wa.me/?text=${message}`, "_blank");
+    const message = `*Dinkar Elite Maintenance Receipt*%0A%0AHello ${name} (Flat ${flat}), your maintenance payment of ${amount} has been successfully recorded.%0A%0AYou can view and download your digital receipt here:%0A${verificationLink}%0A%0A_This is an automated message from Society Trasurer._`;
+
+    // 2. Agar number hai toh direct chat link, warna normal share
+    let waUrl = "https://wa.me/";
+    if (phone) {
+        const cleanPhone = phone.replace(/\D/g, ""); // Sirf numbers
+        const finalPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+        waUrl += finalPhone;
+    }
+    waUrl += `?text=${message}`;
+
+    window.open(waUrl, "_blank");
     return;
   }
 
@@ -478,6 +494,7 @@ document.addEventListener("click", async (e) => {
       state.editingResidentId = r.id;
       document.getElementById("r-flat").value = r.flatNo;
       document.getElementById("r-name").value = r.ownerName;
+      document.getElementById("r-phone").value = r.phone || ""; 
       document.getElementById("r-amount").value = r.maintAmount;
       document.getElementById("resident-submit-btn").textContent = "Update";
       document.getElementById("cancel-edit-btn").classList.remove("hidden");
@@ -580,21 +597,27 @@ document
   .getElementById("resident-form")
   ?.addEventListener("submit", async (e) => {
     e.preventDefault();
+    
     const d = {
       flatNo: document.getElementById("r-flat").value,
       ownerName: document.getElementById("r-name").value,
+      phone: document.getElementById("r-phone").value, 
       maintAmount: parseFloat(document.getElementById("r-amount").value),
       status: document.getElementById("r-status").value,
     };
+
     if (state.editingResidentId) {
       await DataService.updateResident(state.editingResidentId, d);
       state.editingResidentId = null;
       document.getElementById("resident-submit-btn").textContent = "Add";
       document.getElementById("cancel-edit-btn").classList.add("hidden");
-    } else await DataService.addResident(d);
+    } else {
+      await DataService.addResident(d);
+    }
+
     e.target.reset();
-    UI.showToast("Success");
-  });
+    UI.showToast("Success: Resident data updated.");
+});
 
 document.getElementById("m-flat")?.addEventListener("change", (e) => {
   const res = state.residents.find((r) => r.flatNo === e.target.value);
