@@ -184,45 +184,49 @@ async function handlePublicVerification(receiptId) {
 document.getElementById('v-download')?.addEventListener('click', async () => {
     const btn = document.getElementById('v-download');
     const originalText = btn.innerText;
-    btn.innerText = "Generating...";
+    btn.innerText = "Downloading..."; 
     btn.disabled = true;
 
     const printArea = document.getElementById('receipt-print-area');
-    
-    // TRICK: Receipt ko visible karein lekin screen ke bahar taaki QR aur Table render ho sakein
     printArea.style.display = "block";
     printArea.style.position = "absolute";
     printArea.style.left = "-9999px";
     printArea.classList.remove('hidden');
 
     try {
-        // Wait for 200ms taaki QR library render ho jaye
         await new Promise(r => setTimeout(r, 200));
 
         const canvas = await html2canvas(printArea, { 
-            scale: 2,
+            scale: 1.5,           
             useCORS: true,
             backgroundColor: "#ffffff",
-            logging: false,
-            height: printArea.offsetHeight, // Force capturing the full element height
-            windowHeight: printArea.scrollHeight 
+            logging: false
         });
 
-        const imgData = canvas.toDataURL('image/png');
+        const imgData = canvas.toDataURL('image/jpeg', 0.7); 
+        
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdf = new jsPDF({
+            orientation: 'p',
+            unit: 'mm',
+            format: 'a4',
+            compress: true 
+        });
         
         const imgProps = pdf.getImageProperties(imgData);
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
         
-        pdf.addImage(imgData, 'PNG', 0, 5, pdfWidth, pdfHeight);
-        pdf.save(`Receipt_Flat_${document.getElementById('p-flat').textContent}.pdf`);
+        pdf.addImage(imgData, 'JPEG', 0, 5, pdfWidth, pdfHeight, undefined, 'FAST');
+        
+        const flatNo = document.getElementById('p-flat').textContent;
+        pdf.save(`Receipt_Flat_${flatNo}.pdf`);
+        
+        UI.showToast("Success: Receipt PDF Downloaded");
     } catch (err) {
         console.error("PDF Error:", err);
-        alert("Generation failed. Please try again.");
+        UI.showToast("Error generating PDF");
     } finally {
-        // Reset and hide
         printArea.style.display = "";
         printArea.style.position = "";
         printArea.style.left = "";
