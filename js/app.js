@@ -1,5 +1,4 @@
-// js/app.js
-import { auth, db } from "./config.js";
+  import { auth, db } from "./config.js";
 import { DataService } from "./services.js";
 import * as UI from "./ui.js";
 import {
@@ -432,33 +431,38 @@ document.addEventListener("click", async (e) => {
 
   // --- WHATSAPP RECEIPT SHARING ---
   // --- UPDATED SMART WHATSAPP SHARING ---
-  if (t.closest(".share-receipt-btn")) {
+  // app.js mein 'share-receipt-btn' wala logic update karein
+if (t.closest(".share-receipt-btn")) {
     const btn = t.closest(".share-receipt-btn");
     const id = btn.dataset.id;
     const name = btn.dataset.name;
     const flat = btn.dataset.flat;
     const amount = UI.formatCurrency(btn.dataset.amount);
 
-    // 1. Database se is flat ka saved number nikalo
+    // Database se resident ka phone number nikalen
     const resident = state.residents.find(r => r.flatNo === flat);
     const phone = resident ? resident.phone : "";
 
     const cleanUrl = window.location.origin + window.location.pathname;
     const verificationLink = `${cleanUrl}?receiptId=${id}`;
-    const message = `*Dinkar Elite Maintenance Receipt*%0A%0AHello ${name} (Flat ${flat}), your maintenance payment of ${amount} has been successfully recorded.%0A%0AYou can view and download your digital receipt here:%0A${verificationLink}%0A%0A_This is an automated message from Society Trasurer._`;
+    
+    // Message ko properly encode karna zaroori hai
+    const message = encodeURIComponent(`*Dinkar Elite Maintenance Receipt*
 
-    // 2. Agar number hai toh direct chat link, warna normal share
-    let waUrl = "https://wa.me/";
+Hello ${name} (Flat ${flat}), your maintenance payment of ${amount} has been successfully recorded.
+
+View Receipt: ${verificationLink}`);
+
+    // Agar phone number hai toh direct chat, nahi toh general share
+    let waBase = "https://wa.me/";
     if (phone) {
-        const cleanPhone = phone.replace(/\D/g, ""); // Sirf numbers
-        const finalPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-        waUrl += finalPhone;
+        const cleanPhone = phone.replace(/\D/g, '');
+        waBase += (cleanPhone.length === 10 ? "91" + cleanPhone : cleanPhone);
     }
-    waUrl += `?text=${message}`;
 
-    window.open(waUrl, "_blank");
+    window.open(`${waBase}?text=${message}`, "_blank");
     return;
-  }
+}
 
   if (t.closest(".delete-sheet-btn"))
     if (confirm("Move to Bin?"))
@@ -692,7 +696,8 @@ document.getElementById("loginForm")?.addEventListener("submit", async (e) => {
       document.getElementById("loginPassword").value,
     );
   } catch (err) {
-    document.getElementById("authError").textContent = "Login Failed";
+    console.error(err);
+    document.getElementById("authError").textContent = "Error: " + err.code;
   }
 });
 
