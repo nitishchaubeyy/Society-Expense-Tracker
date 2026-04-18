@@ -1,4 +1,4 @@
-const CACHE_NAME = 'society-tracker-final-v1'; // Naya version bypass karne ke liye
+const CACHE_NAME = 'society-tracker-final-v2'; 
 const ASSETS = [
     './index.html',
     './css/style.css',
