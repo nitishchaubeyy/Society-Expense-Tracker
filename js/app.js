@@ -219,8 +219,10 @@ document.getElementById('v-download')?.addEventListener('click', async () => {
         
         pdf.addImage(imgData, 'JPEG', 0, 5, pdfWidth, pdfHeight, undefined, 'FAST');
         
+        const monthName = document.getElementById('p-month').textContent;
         const flatNo = document.getElementById('p-flat').textContent;
-        pdf.save(`Receipt_Flat_${flatNo}.pdf`);
+
+        pdf.save(`${monthName}_Flat_${flatNo}.pdf`);
         
         UI.showToast("Success: Receipt PDF Downloaded");
     } catch (err) {
