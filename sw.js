@@ -1,4 +1,5 @@
-const CACHE_NAME = 'society-tracker-final-v2'; 
+// Version bump: v2 se v3 kiya taaki browser ko naya update dikhe
+const CACHE_NAME = 'society-tracker-final-v3'; 
 const ASSETS = [
     './index.html',
     './css/style.css',
@@ -15,25 +16,29 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             console.log('SW: Caching essential assets...');
-            // addAll fail ho jata hai agar koi file missing ho, isliye careful rahein
             return cache.addAll(ASSETS);
         })
     );
-    self.skipWaiting(); // Naye worker ko turant activate karein
+    self.skipWaiting(); // Naye worker ko line mein lagne se rokta hai
 });
 
-// Activate Service Worker (Purani cache saaf karein)
+// Activate Service Worker (Isme badlav kiya hai)
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((keys) => {
-            return Promise.all(
-                keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-            );
-        })
+        Promise.all([
+            // 1. Purani caches saaf karein
+            caches.keys().then((keys) => {
+                return Promise.all(
+                    keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+                );
+            }),
+            // 2. Turant control lein (Naya added)
+            self.clients.claim()
+        ])
     );
 });
 
-// Fetch Assets
+// Fetch Assets (Cache First Strategy)
 self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request).then((response) => {
