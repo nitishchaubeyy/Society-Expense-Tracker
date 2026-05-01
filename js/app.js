@@ -29,6 +29,23 @@ let state = {
   editingResidentId: null,
 };
 
+// --- STEP 1: DATE FORMATTER MACHINE ---
+const formatDateForDisplay = (dateInput) => {
+    if (!dateInput) return "N/A";
+    
+    // Date object banana
+    const d = new Date(dateInput);
+    
+    // Agar date invalid hai toh handle karein
+    if (isNaN(d.getTime())) return dateInput;
+
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    
+    return `${day}-${month}-${year}`; // Output: DD-MM-YYYY
+};
+
 // --- PUBLIC VERIFICATION LOGIC (Phase 6) ---
 const urlParams = new URLSearchParams(window.location.search);
 let publicReceiptId = urlParams.get('receiptId');
@@ -131,7 +148,10 @@ async function handlePublicVerification(receiptId) {
 
             // --- A. PREMIUM PDF TEMPLATE POPULATION (For Download) ---
             document.getElementById("p-receipt-no").textContent = data.receiptNo || "-";
-            document.getElementById("p-date").textContent = data.date || "-";
+            
+            // 🔥 YAHAN DATE FORMAT FIX KIYA HAI 🔥
+            document.getElementById("p-date").textContent = formatDateForDisplay(data.date);
+            
             document.getElementById("p-name").textContent = data.ownerName || "-";
             document.getElementById("p-flat").textContent = data.flatNo || "-";
             document.getElementById("p-month").textContent = sheetName;
@@ -161,7 +181,10 @@ async function handlePublicVerification(receiptId) {
             document.getElementById("v-flat").textContent = data.flatNo || "-";
             document.getElementById("v-name").textContent = data.ownerName || "-";
             document.getElementById("v-amount").textContent = UI.formatCurrency(data.amount);
-            document.getElementById("v-date").textContent = data.date || "-";
+            
+            // 🔥 YAHAN BHI DATE FORMAT FIX KIYA HAI 🔥
+            document.getElementById("v-date").textContent = formatDateForDisplay(data.date);
+            
             document.getElementById("v-hash").textContent = `ID: ${cleanId}`;
 
             // --- C. QR CODE GENERATION ---
