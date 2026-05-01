@@ -1,5 +1,13 @@
 export const formatCurrency = (a) => `₹${Number(a || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-
+const formatDateForDisplay = (dateInput) => {
+    if (!dateInput) return "N/A";
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return dateInput;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+};
 export const showToast = (message, isError = false) => {
     const toast = document.getElementById('toast');
     const toastMsg = document.getElementById('toast-message');
@@ -60,7 +68,7 @@ export const renderDashboardSheets = (s) => {
     s.filter(x => x.status === 'active').sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis()).forEach(sheet => {
         const d = document.createElement('div'); d.className = "bg-white dark:bg-slate-800 p-6 rounded shadow border dark:border-slate-700 cursor-pointer sheet-card";
         d.dataset.id = sheet.id; d.dataset.name = sheet.name; d.dataset.date = sheet.createdAt.toMillis();
-        d.innerHTML = `<h3 class="font-bold text-lg dark:text-white">${sheet.name}</h3><p class="text-xs text-gray-400">${sheet.createdAt.toDate().toLocaleDateString()}</p>
+        d.innerHTML = `<h3 class="font-bold text-lg dark:text-white">${sheet.name}</h3><p class="text-xs text-gray-400">${formatDateForDisplay(sheet.createdAt.toDate())}</p>
         <button data-id="${sheet.id}" class="mt-4 text-red-500 text-xs font-bold delete-sheet-btn">DELETE</button>`;
         grid.appendChild(d);
     });
@@ -126,7 +134,7 @@ export const renderExpenses = (e) => {
     e.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(x => {
         const row = body.insertRow();
         // Added whitespace-nowrap to cells to ensure horizontal scroll triggers correctly on mobile
-        row.innerHTML = `<td class="p-3 dark:text-slate-300 whitespace-nowrap">${x.date}</td><td class="p-3 dark:text-slate-200 whitespace-nowrap">${x.description}</td><td class="p-3 font-bold dark:text-white whitespace-nowrap">${formatCurrency(x.amount)}</td>
+        row.innerHTML = `<td class="p-3 dark:text-slate-300 whitespace-nowrap">${formatDateForDisplay(x.date)}</td><td class="p-3 dark:text-slate-200 whitespace-nowrap">${x.description}</td><td class="p-3 font-bold dark:text-white whitespace-nowrap">${formatCurrency(x.amount)}</td>
         <td class="p-3 text-right whitespace-nowrap"><button data-id="${x.id}" class="text-red-500 text-[10px] font-bold delete-expense-btn uppercase">Delete</button></td>`;
     });
 };
@@ -137,7 +145,7 @@ export const renderCollections = (c) => {
     c.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(x => {
         const row = body.insertRow();
         row.innerHTML = `
-            <td class="p-3 dark:text-slate-300">${x.date}</td>
+            <td class="p-3 dark:text-slate-300">${formatDateForDisplay(x.date)}</td>
             <td class="p-3 dark:text-slate-200">${x.flatNo} - ${x.ownerName}</td>
             <td class="p-3 font-bold text-green-600">${formatCurrency(x.amount)}</td>
             <td class="p-3 text-right flex justify-end items-center gap-3">
