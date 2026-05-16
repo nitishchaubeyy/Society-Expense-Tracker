@@ -490,13 +490,27 @@ if (t.closest(".share-receipt-btn")) {
     const cleanUrl = window.location.origin + window.location.pathname;
     const verificationLink = `${cleanUrl}?receiptId=${id}`;
     
-    // Message ko properly encode karna zaroori hai
-    const message = encodeURIComponent(`*Dinkar Elite Maintenance Receipt*
+    // 🌟 SMART MONTH LOGIC 🌟
+    // Pehle state se mahine ka naam dhoondhne ki koshish karte hain
+    let currentMonth = "Maintenance";
+    if (typeof state !== 'undefined') {
+        if (state.currentSheetName) currentMonth = state.currentSheetName;
+        else if (state.currentSheet && state.currentSheet.name) currentMonth = state.currentSheet.name;
+        else if (state.sheetName) currentMonth = state.sheetName;
+    }
+    
+    // Agar state mein nahi mila, toh aaj ki date se mahina aur saal nikal lo (e.g., "May 2026")
+    if (currentMonth === "Maintenance") {
+        const d = new Date();
+        currentMonth = d.toLocaleString('en-IN', { month: 'long' }) + " " + d.getFullYear();
+    }
 
-Hello ${name} (Flat ${flat}), your maintenance payment of ${amount} has been successfully recorded.
+    // Message ko properly encode karna zaroori hai
+    const message = encodeURIComponent(`*Dinkar Elite Maintenance Receipt - ${currentMonth}*
+
+Hello ${name} (Flat ${flat}), your maintenance payment of ${amount} for ${currentMonth} has been successfully recorded.
 
 View Receipt: ${verificationLink}`);
-
     // Agar phone number hai toh direct chat, nahi toh general share
     let waBase = "https://wa.me/";
     if (phone) {
