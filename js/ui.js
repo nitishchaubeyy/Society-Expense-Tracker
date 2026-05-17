@@ -134,8 +134,19 @@ export const renderExpenses = (e) => {
     e.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(x => {
         const row = body.insertRow();
         // Added whitespace-nowrap to cells to ensure horizontal scroll triggers correctly on mobile
-        row.innerHTML = `<td class="p-3 dark:text-slate-300 whitespace-nowrap">${formatDateForDisplay(x.date)}</td><td class="p-3 dark:text-slate-200 whitespace-nowrap">${x.description}</td><td class="p-3 font-bold dark:text-white whitespace-nowrap">${formatCurrency(x.amount)}</td>
-        <td class="p-3 text-right whitespace-nowrap"><button data-id="${x.id}" class="text-red-500 text-[10px] font-bold delete-expense-btn uppercase">Delete</button></td>`;
+        row.innerHTML = `
+            <td class="p-3 dark:text-slate-300 whitespace-nowrap">${formatDateForDisplay(x.date)}</td>
+            <td class="p-3 dark:text-slate-200">
+                ${x.description} 
+                <span class="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                    ${x.paymentMode || "N/A"}
+                </span>
+            </td>
+            <td class="p-3 font-bold text-red-500">${formatCurrency(x.amount)}</td>
+            <td class="p-3 text-right whitespace-nowrap">
+                <button data-id="${x.id}" class="text-red-500 text-[10px] font-bold delete-expense-btn">DELETE</button>
+            </td>
+        `;
     });
 };
 

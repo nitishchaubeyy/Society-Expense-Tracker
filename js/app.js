@@ -726,6 +726,7 @@ document
       amount: parseFloat(document.getElementById("e-amount").value),
       description: document.getElementById("e-desc").value,
       sheetId: state.currentSheetId,
+      paymentMode: document.getElementById("e-payment-mode").value,
     });
     e.target.reset();
     UI.showToast("Log Added: Expense successfully saved.");

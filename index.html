@@ -465,37 +465,66 @@
               </div>
             </div>
             <div id="expenses-tab" class="hidden">
-              <form
-                id="expense-form"
-                class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white dark:bg-slate-800 p-6 rounded border dark:border-slate-700 mb-6 shadow-sm"
-              >
-                <input
-                  type="date"
-                  id="e-date"
-                  required
-                  class="p-2 border dark:bg-slate-700 rounded"
-                />
-                <input
-                  type="text"
-                  id="e-desc"
-                  required
-                  placeholder="Description"
-                  class="md:col-span-2 p-2 border dark:bg-slate-700 rounded"
-                />
-                <input
-                  type="number"
-                  id="e-amount"
-                  required
-                  placeholder="Amount"
-                  class="p-2 border dark:bg-slate-700 rounded"
-                />
-                <button
-                  type="submit"
-                  class="bg-red-600 text-white font-bold py-2 rounded md:col-span-4 shadow-md"
-                >
-                  Add Expense
-                </button>
-              </form>
+  <form
+    id="expense-form"
+    class="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white dark:bg-slate-800 p-6 rounded border dark:border-slate-700 mb-6 shadow-sm"
+  >
+    <input
+      type="date"
+      id="e-date"
+      required
+      class="p-2 border dark:bg-slate-700 dark:bg-slate-900 dark:text-white rounded"
+    />
+    <input
+      type="text"
+      id="e-desc"
+      required
+      placeholder="Description"
+      class="md:col-span-2 p-2 border dark:bg-slate-700 dark:bg-slate-900 dark:text-white rounded"
+    />
+    <input
+      type="number"
+      id="e-amount"
+      required
+      placeholder="Amount"
+      class="p-2 border dark:bg-slate-700 dark:bg-slate-900 dark:text-white rounded"
+    />
+    
+    <select
+      id="e-payment-mode"
+      required
+      class="p-2 border dark:bg-slate-700 dark:text-white rounded bg-white dark:bg-slate-900"
+    >
+      <option value="" disabled selected>Mode</option>
+      <option value="UPI">UPI</option>
+      <option value="Cash">Cash</option>
+      <option value="Cheque">Cheque</option>
+      <option value="Bank Transfer">Bank Transfer</option>
+    </select>
+
+    <button
+      type="submit"
+      class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded md:col-span-5 shadow-md transition-colors"
+    >
+      Add Expense
+    </button>
+  </form>
+
+  <div class="overflow-x-auto bg-white dark:bg-slate-800 rounded border dark:border-slate-700 shadow-sm">
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="bg-slate-100 dark:bg-slate-700 border-b dark:border-slate-600">
+          <th class="p-3 text-sm font-bold dark:text-slate-200">Date</th>
+          <th class="p-3 text-sm font-bold dark:text-slate-200">Description</th>
+          <th class="p-3 text-sm font-bold dark:text-slate-200">Amount</th>
+          <th class="p-3 text-sm font-bold dark:text-slate-200 text-right">Action</th>
+        </tr>
+      </thead>
+      <tbody id="expense-log-table">
+        </tbody>
+    </table>
+  </div>
+</div>
               <div
                 class="bg-white dark:bg-slate-800 rounded border overflow-x-auto shadow-sm"
               >
