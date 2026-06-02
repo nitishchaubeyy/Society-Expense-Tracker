@@ -272,39 +272,42 @@ export const exportToExcel = (sheetName, residents, collections, expenses) => {
     wsMain['!cols'] = Array(20).fill({wch: 15});
     XLSX.utils.book_append_sheet(wb, wsMain, "Maintenance");
 
-    // --- NEW STYLED EXPENSES SHEET WITH TOTAL ---
-    const wsExp = {};
-    const expHeaders = ["Date", "Description", "Amount (₹)"];
-    
-    // 1. Draw Styled Headers
-    expHeaders.forEach((h, i) => {
-        wsExp[XLSX.utils.encode_cell({r:0, c:i})] = {v: h, s: sSubHeader};
-    });
+// --- NEW STYLED EXPENSES SHEET WITH TOTAL ---
+        const wsExp = {};
+        // 🔥 NAYA COLUMN "Payment Mode" ADD KIYA HAI 🔥
+        const expHeaders = ["Date", "Description", "Payment Mode", "Amount (₹)"]; 
 
-    // 2. Draw Data Rows with Borders
-    let totalExpAmt = 0;
-    expenses.forEach((e, idx) => {
-        const r = idx + 1;
-        wsExp[XLSX.utils.encode_cell({r, c:0})] = {v: e.date, s: sBorder};
-        wsExp[XLSX.utils.encode_cell({r, c:1})] = {v: e.description, s: sBorder};
-        wsExp[XLSX.utils.encode_cell({r, c:2})] = {v: e.amount, s: sBorder};
-        totalExpAmt += e.amount;
-    });
+        // 1. Draw Styled Headers
+        expHeaders.forEach((h, i) => {
+            wsExp[XLSX.utils.encode_cell({r:0, c:i})] = {v: h, s: sSubHeader};
+        });
 
-    // 3. Draw Total Summary Row (Reusing Light Gray Aesthetic)
-    const tRow = expenses.length + 1;
-    wsExp[XLSX.utils.encode_cell({r: tRow, c: 0})] = {v: "TOTAL EXPENSES", s: sSummary};
-    wsExp[XLSX.utils.encode_cell({r: tRow, c: 1})] = {v: "", s: sSummary};
-    wsExp[XLSX.utils.encode_cell({r: tRow, c: 2})] = {v: `₹${totalExpAmt}`, s: sSummary};
-    
-    // Merge "TOTAL EXPENSES" across Date and Description columns
-    wsExp['!merges'] = [{ s: {r: tRow, c: 0}, e: {r: tRow, c: 1} }];
-    
-    // Finalize Sheet
-    wsExp['!ref'] = XLSX.utils.encode_range({s: {r:0, c:0}, e: {r: tRow, c: 2}});
-    wsExp['!cols'] = [{wch: 15}, {wch: 40}, {wch: 20}]; // Specific widths for expenses
-    
-    XLSX.utils.book_append_sheet(wb, wsExp, "Expenses");
+        // 2. Draw Data Rows with Borders
+        let totalExpAmt = 0;
+        expenses.forEach((e, idx) => {
+            const r = idx + 1;
+            wsExp[XLSX.utils.encode_cell({r, c:0})] = {v: formatDateForDisplay(e.date), s: sBorder};
+            wsExp[XLSX.utils.encode_cell({r, c:1})] = {v: e.description, s: sBorder};
+            // 🔥 YAHAN PAYMENT MODE KI VALUE BIND KI HAI (Purane data ke liye N/A fallback) 🔥
+            wsExp[XLSX.utils.encode_cell({r, c:2})] = {v: e.paymentMode || "N/A", s: sBorder};
+            wsExp[XLSX.utils.encode_cell({r, c:3})] = {v: e.amount, s: sBorder};
+            totalExpAmt += e.amount;
+        });
+
+        // 3. Draw Total Summary Row 
+        const tRow = expenses.length + 1;
+        wsExp[XLSX.utils.encode_cell({r: tRow, c: 0})] = {v: "TOTAL EXPENSES", s: sSummary};
+        wsExp[XLSX.utils.encode_cell({r: tRow, c: 1})] = {v: "", s: sSummary};
+        wsExp[XLSX.utils.encode_cell({r: tRow, c: 2})] = {v: "", s: sSummary}; // Extra column merge alignment ke liye
+        wsExp[XLSX.utils.encode_cell({r: tRow, c: 3})] = {v: `₹${totalExpAmt}`, s: sSummary};
+
+        // Merge "TOTAL EXPENSES" across Date, Description, and Payment Mode columns
+        wsExp['!merges'] = [{ s: { r: tRow, c: 0 }, e: { r: tRow, c: 2 } }];
+
+        wsExp['!ref'] = `A1:D${tRow + 1}`; // Range expand ki A1 se D tak
+        wsExp['!cols'] = [{wch: 15}, {wch: 35}, {wch: 20}, {wch: 15}]; // Column widths set kiye
+
+        XLSX.utils.book_append_sheet(wb, wsExp, "Expenses");
 
     // --- WRITE FILE ---
     XLSX.writeFile(wb, `${sheetName}_Report.xlsx`);
