@@ -153,9 +153,24 @@ export const renderExpenses = (e) => {
 export const renderCollections = (c) => {
     const body = document.getElementById('collection-log-table'); if(!body) return;
     body.innerHTML = '';
-    c.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(x => {
+    
+    // Sort by calendar date first, then use the exact creation timestamp as a tie-breaker. 
+    c.sort((a, b) => {
+        // 1. Compare the calendar dates
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        
+        if (dateA !== dateB) {
+            return dateB - dateA; // Display the most recent date first.
+        }
+        
+        // 2. If the dates are the same, retrieve the exact order using the Firebase timestamp.
+        const timeA = a.createdAt ? (typeof a.createdAt.toMillis === 'function' ? a.createdAt.toMillis() : new Date(a.createdAt).getTime()) : 0;
+        const timeB = b.createdAt ? (typeof b.createdAt.toMillis === 'function' ? b.createdAt.toMillis() : new Date(b.createdAt).getTime()) : 0;
+        
+        return timeB - timeA; // Show the most recently created record first.
+    }).forEach(x => {
         const row = body.insertRow();
-        // Added whitespace-nowrap to all td elements to enforce universal horizontal scrolling
         row.innerHTML = `
             <td class="p-3 dark:text-slate-300 whitespace-nowrap">${formatDateForDisplay(x.date)}</td>
             <td class="p-3 dark:text-slate-200 whitespace-nowrap">${x.flatNo} - ${x.ownerName}</td>
