@@ -155,11 +155,12 @@ export const renderCollections = (c) => {
     body.innerHTML = '';
     c.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(x => {
         const row = body.insertRow();
+        // Added whitespace-nowrap to all td elements to enforce universal horizontal scrolling
         row.innerHTML = `
-            <td class="p-3 dark:text-slate-300">${formatDateForDisplay(x.date)}</td>
-            <td class="p-3 dark:text-slate-200">${x.flatNo} - ${x.ownerName}</td>
-            <td class="p-3 font-bold text-green-600">${formatCurrency(x.amount)}</td>
-            <td class="p-3 text-right flex justify-end items-center gap-3">
+            <td class="p-3 dark:text-slate-300 whitespace-nowrap">${formatDateForDisplay(x.date)}</td>
+            <td class="p-3 dark:text-slate-200 whitespace-nowrap">${x.flatNo} - ${x.ownerName}</td>
+            <td class="p-3 font-bold text-green-600 whitespace-nowrap">${formatCurrency(x.amount)}</td>
+            <td class="p-3 text-right flex justify-end items-center gap-3 whitespace-nowrap">
                 <button data-id="${x.id}" 
                         data-name="${x.ownerName}" 
                         data-flat="${x.flatNo}" 
