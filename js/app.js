@@ -14,6 +14,7 @@ import {
   getDocs,
   doc,
   getDoc,
+  updateDoc,
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 let state = {
@@ -483,7 +484,7 @@ if (t.closest(".share-receipt-btn")) {
     const flat = btn.dataset.flat;
     const amount = UI.formatCurrency(btn.dataset.amount);
 
-    // Database se resident ka phone number nikalen
+    // Extract the resident's phone number from the local state
     const resident = state.residents.find(r => r.flatNo === flat);
     const phone = resident ? resident.phone : "";
 
@@ -491,7 +492,7 @@ if (t.closest(".share-receipt-btn")) {
     const verificationLink = `${cleanUrl}?receiptId=${id}`;
     
     // 🌟 SMART MONTH LOGIC 🌟
-    // Pehle state se mahine ka naam dhoondhne ki koshish karte hain
+    // Try to fetch the current month name from the state first
     let currentMonth = "Maintenance";
     if (typeof state !== 'undefined') {
         if (state.currentSheetName) currentMonth = state.currentSheetName;
@@ -499,26 +500,51 @@ if (t.closest(".share-receipt-btn")) {
         else if (state.sheetName) currentMonth = state.sheetName;
     }
     
-    // Agar state mein nahi mila, toh aaj ki date se mahina aur saal nikal lo (e.g., "May 2026")
+    // If it is not found in the state, generate it from today's date (e.g., "May 2026")
     if (currentMonth === "Maintenance") {
         const d = new Date();
         currentMonth = d.toLocaleString('en-IN', { month: 'long' }) + " " + d.getFullYear();
     }
 
-    // Message ko properly encode karna zaroori hai
+    // Message must be properly encoded
     const message = encodeURIComponent(`*Dinkar Elite Maintenance Receipt - ${currentMonth}*
 
 Hello ${name} (Flat ${flat}), your maintenance payment of ${amount} for ${currentMonth} has been successfully recorded.
 
 View Receipt: ${verificationLink}`);
-    // Agar phone number hai toh direct chat, nahi toh general share
+    
+    // Direct chat if phone number exists, otherwise general share
     let waBase = "https://wa.me/";
     if (phone) {
         const cleanPhone = phone.replace(/\D/g, '');
         waBase += (cleanPhone.length === 10 ? "91" + cleanPhone : cleanPhone);
     }
 
+    // Open WhatsApp in a new tab
     window.open(`${waBase}?text=${message}`, "_blank");
+
+    // 🌟 NEW LOGIC: SMART BUTTON & DATABASE UPDATE 🌟
+    
+
+    //  Update the Local State
+    const collectionIndex = state.collections.findIndex(c => c.id === id);
+    if (collectionIndex > -1) {
+        state.collections[collectionIndex].receiptShared = true;
+        UI.renderCollections(state.collections);
+    }
+
+    //  Update Firestore Database
+    // Using the flat structure confirmed from your database screenshot
+    const docRef = doc(db, "maintenance", id);
+    
+    updateDoc(docRef, {
+        receiptShared: true
+    }).then(() => {
+        console.log(`Receipt state for ${id} saved as shared.`);
+    }).catch((error) => {
+        console.error("Error updating receipt state:", error);
+    });
+
     return;
 }
 
