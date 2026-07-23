@@ -537,13 +537,24 @@ View Receipt: ${verificationLink}`);
     // Using the flat structure confirmed from your database screenshot
     const docRef = doc(db, "maintenance", id);
     
-    updateDoc(docRef, {
+    try {
+    await updateDoc(docRef, {
         receiptShared: true
-    }).then(() => {
-        console.log(`Receipt state for ${id} saved as shared.`);
-    }).catch((error) => {
-        console.error("Error updating receipt state:", error);
     });
+
+    console.log(`Receipt state for ${id} saved as shared.`);
+
+    } catch (error) {
+    console.error("Error updating receipt state:", error);
+
+    // Roll back local state
+    if (collectionIndex > -1) {
+        state.collections[collectionIndex].receiptShared = false;
+        UI.renderCollections(state.collections);
+    }
+
+    UI.showToast("Failed to save receipt status.", true);
+    }
 
     return;
 }
