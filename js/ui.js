@@ -171,6 +171,16 @@ export const renderCollections = (c) => {
         return timeB - timeA; // Show the most recently created record first.
     }).forEach(x => {
         const row = body.insertRow();
+
+        // Check if the receipt has already been shared from the database flag
+        const isShared = x.receiptShared === true;
+        
+        const btnClass = isShared 
+            ? "text-slate-500 font-bold text-[10px] share-receipt-btn uppercase border border-slate-300 dark:border-slate-600 px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
+            : "text-teal-600 font-bold text-[10px] share-receipt-btn uppercase border border-teal-600 px-2 py-1 rounded hover:bg-teal-600 hover:text-white transition-all";
+            
+        const btnText = isShared ? "Shared ✅" : "Share";
+        
         row.innerHTML = `
             <td class="p-3 dark:text-slate-300 whitespace-nowrap">${formatDateForDisplay(x.date)}</td>
             <td class="p-3 dark:text-slate-200 whitespace-nowrap">${x.flatNo} - ${x.ownerName}</td>
@@ -180,8 +190,8 @@ export const renderCollections = (c) => {
                         data-name="${x.ownerName}" 
                         data-flat="${x.flatNo}" 
                         data-amount="${x.amount}" 
-                        class="text-teal-600 font-bold text-[10px] share-receipt-btn uppercase border border-teal-600 px-2 py-1 rounded hover:bg-teal-600 hover:text-white transition-all">
-                    Share
+                        class="${btnClass}">
+                        ${btnText}
                 </button>
                 <button data-id="${x.id}" class="text-red-500 text-[10px] font-bold delete-collection-btn uppercase">Delete</button>
             </td>`;
